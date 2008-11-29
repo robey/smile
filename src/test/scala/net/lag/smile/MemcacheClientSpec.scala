@@ -143,7 +143,6 @@ object MemcacheClientSpec extends Specification {
         ))
       client.namespace = Some("a")
       client.get(Array("a", "b", "c")) mustEqual Map("a" -> "apple", "b" -> "beach", "c" -> "conch")
-println(servers)
       for (s <- servers) {
         s.awaitConnection(500) mustBe true
       }

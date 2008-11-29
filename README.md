@@ -1,5 +1,4 @@
 
-=====
 SMILE
 =====
 
@@ -11,34 +10,32 @@ Ketama). Support for round-robin ("default") and Ketama key distributions is
 built-in. User-defined key hashing and distribution functions can be trivially
 added via the API.
 
-Server lists and configuration may be set manually or via configgy
-<http://www.lag.net/configgy> blocks. User-defined key hashing and
+Server lists and configuration may be set manually or via
+[configgy](http://www.lag.net/configgy) blocks. User-defined key hashing and
 distribution may be specified in the config block -- just be sure to add them
 via the API first! :)
 
 Author: Robey Pointer <robeypointer@gmail.com>
 
-.. contents::
-
 
 Strategy
-========
+--------
 
-Mina <http://mina.apache.org/> is used as a library for handling asynchronous
+[Mina](http://mina.apache.org/) is used as a library for handling asynchronous
 I/O via java NIO, and the memcache protocol is implemented using the naggati
 DSL for building Mina protocol state machines. I/O events are forwarded to
 scala actors, with one actor for each memcache server connection. It acts like
 a thread-pool but ensures that each server's traffic is handled sequentially,
 with very simple code.
 
-.. image:: docs/smile.png
+![Structure](docs/smile.png)
 
 
 Performance
-===========
+-----------
 
 A performance test is included as an ant target. It requires you to have 3
-memcached servers running on localhost, on ports 11211, 11212, and 11213::
+memcached servers running on localhost, on ports 11211, 11212, and 11213:
 
     $ ant manygets
     manygets:
@@ -59,9 +56,9 @@ on each server in parallel.
 
 
 API
-===
+---
 
-To get/set UTF-8 strings using a single-node memcache cluster on localhost::
+To get/set UTF-8 strings using a single-node memcache cluster on localhost:
 
     val cache = MemcacheClient.create(Array("localhost"), "default", "crc32-itu")
     cache.set("name", "smile")
@@ -69,12 +66,9 @@ To get/set UTF-8 strings using a single-node memcache cluster on localhost::
 
 
 TO-DO
-=====
+-----
 
 - Support more than just get and set. At least delete, add, and append.
 
 - Expose the stats command in some useful way.
-
-- Port to scala 2.7.2 when that's released, so the java hack can go away and
-  vscaladoc will work.
 
