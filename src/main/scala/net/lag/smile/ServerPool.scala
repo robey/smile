@@ -31,7 +31,7 @@ class ServerPool(trace: Boolean) {
   var readTimeout = 2000
 
   // note: this will create one thread per ServerPool
-  var connector = SocketConnectorHack.get(threadPool)
+  var connector = new NioSocketConnector(new NioProcessor(threadPool))
   connector.setConnectTimeoutMillis(DEFAULT_CONNECT_TIMEOUT)
   connector.getSessionConfig.setTcpNoDelay(true)
   connector.getSessionConfig.setUseReadOperation(true)
