@@ -19,7 +19,7 @@ object MemcacheClientDecoderSpec extends Specification {
 
   private var fakeSession: IoSession = null
   private var fakeDecoderOutput: ProtocolDecoderOutput = null
-  private var written: List[MemcacheResponse] = Nil
+  private var written = new mutable.ListBuffer[MemcacheResponse]
 
   def quickDecode(decoder: Decoder, s: String): Unit = quickDecode(decoder, s.getBytes)
   def quickDecode(decoder: Decoder, b: Array[Byte]): Unit = quickDecode(decoder, IoBuffer.wrap(b))
@@ -30,12 +30,12 @@ object MemcacheClientDecoderSpec extends Specification {
 
   "MemcacheClientDecoder" should {
     doBefore {
-      written = Nil
+      written.clear
       fakeSession = new DummySession
       fakeDecoderOutput = new ProtocolDecoderOutput {
         override def flush = {}
         override def write(obj: AnyRef) = {
-          written = written ++ List(obj.asInstanceOf[MemcacheResponse])
+          written += obj.asInstanceOf[MemcacheResponse]
         }
       }
     }
