@@ -7,8 +7,8 @@
     <java classname="scala.tools.nsc.MainGenericRunner" fork="true" failonerror="true">
       <classpath>
         <path refid="test.path" />
-        <pathelement location="${target.dir}" />
-        <pathelement location="${test.target.dir}" />
+        <pathelement location="${target.dir}/classes" />
+        <pathelement location="${target.dir}/test-classes" />
       </classpath>
       <arg line="net.lag.smile.go" />
     </java>
@@ -18,8 +18,8 @@
     <java classname="scala.tools.nsc.MainGenericRunner" fork="true" failonerror="true">
       <classpath>
         <path refid="test.path" />
-        <pathelement location="${target.dir}" />
-        <pathelement location="${test.target.dir}" />
+        <pathelement location="${target.dir}/classes" />
+        <pathelement location="${target.dir}/test-classes" />
       </classpath>
       <arg line="net.lag.smile.stress.ManyGets" />
     </java>
