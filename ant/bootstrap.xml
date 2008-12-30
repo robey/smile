@@ -4,6 +4,7 @@
   <property name="source.dir" value="${basedir}/src/main" />
   <property name="test.source.dir" value="${basedir}/src/test" />
   <property name="target.dir" value="${basedir}/target" />
+  <property name="test.target.dir" value="${basedir}/target/test-classes" />
 
   <property environment="env" />
 

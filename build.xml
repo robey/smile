@@ -7,7 +7,7 @@
     <java classname="scala.tools.nsc.MainGenericRunner" fork="true" failonerror="true">
       <classpath>
         <path refid="test.path" />
-        <pathelement location="${target.dir}" />
+        <pathelement location="${target.dir}/classes" />
         <pathelement location="${test.target.dir}" />
       </classpath>
       <arg line="net.lag.smile.go" />
@@ -18,10 +18,26 @@
     <java classname="scala.tools.nsc.MainGenericRunner" fork="true" failonerror="true">
       <classpath>
         <path refid="test.path" />
-        <pathelement location="${target.dir}" />
+        <pathelement location="${target.dir}/classes" />
         <pathelement location="${test.target.dir}" />
       </classpath>
-      <arg line="net.lag.smile.stress.ManyGets" />
+      <arg line="net.lag.smile.stress.ManyGets staging05 staging04 staging03" />
+      <jvmarg value="-Xms512m" />
+      <jvmarg value="-Xmx512m" />
     </java>
   </target>
+
+  <target name="kestrel" depends="prepare,compile-tests">
+    <java classname="scala.tools.nsc.MainGenericRunner" fork="true" failonerror="true">
+      <classpath>
+        <path refid="test.path" />
+        <pathelement location="${target.dir}/classes" />
+        <pathelement location="${test.target.dir}" />
+      </classpath>
+      <arg line="net.lag.smile.stress.Kestrel awash:22133" />
+      <jvmarg value="-Xms512m" />
+      <jvmarg value="-Xmx512m" />
+    </java>
+  </target>
+
 </project>
