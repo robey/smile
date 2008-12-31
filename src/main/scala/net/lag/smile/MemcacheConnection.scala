@@ -59,6 +59,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       case ConnectionFailed => throw new MemcacheServerOffline
       case Error(description) => throw new MemcacheServerException(description)
       case GetResponse(values) => Map.empty ++ (for (v <- values) yield (v.key, v))
+      case x => throw new MemcacheServerException("unexpected: " + x)
     }
   }
 
@@ -76,7 +77,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           case _ => throw new MemcacheServerException("too many results for single get: " +
             values.length)
         }
-      case x => throw new RuntimeException("ACCCCCK " + x)
+      case x => throw new MemcacheServerException("unexpected: " + x)
     }
   }
 
@@ -201,7 +202,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           log.error("unsolicited response from server %s: %s", this, message)
         case MinaMessage.MessageSent(message) =>
         case MinaMessage.ExceptionCaught(cause) =>
-          log.error(cause, "exception in actor for %s", this)
+          log.error(cause, "unsolicted exception in actor for %s", this)
           disconnect
         case MinaMessage.SessionIdle(status) =>
           // probably leftover from a previous timeout.
@@ -223,8 +224,14 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       case MinaMessage.MessageReceived(message) =>
         handler(message)
       case MinaMessage.ExceptionCaught(cause) =>
-        log.error(cause, "exception in actor for %s", this)
         disconnect
+        if (cause.isInstanceOf[java.io.IOException]) {
+          log.error(cause, "exception in actor for %s ioexception", this)
+          sender ! ConnectionFailed
+        } else {
+          log.error(cause, "exception in actor for %s", this)
+          sender ! Error(cause.toString)
+        }
       case MinaMessage.SessionIdle(status) =>
         log.error("timeout for %s", this)
         disconnect

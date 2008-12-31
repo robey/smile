@@ -36,7 +36,12 @@
       </classpath>
       <arg line="net.lag.smile.stress.Kestrel awash:22133" />
       <jvmarg value="-Xms512m" />
-      <jvmarg value="-Xmx512m" />
+      <jvmarg value="-Xmx1024m" />
+      <jvmarg value="-ea" />
+      <jvmarg value="-esa" />
+      <jvmarg value="-XX:+UseConcMarkSweepGC" />
+      <jvmarg value="-XX:NewSize=256m" />
+      <jvmarg value="-server" />
     </java>
   </target>
 
