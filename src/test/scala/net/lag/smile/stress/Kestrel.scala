@@ -449,7 +449,6 @@ class KestrelTest extends StressTest {
     //
     suite(3, 10000, 256, 8000, 250, 10)
     suite(3, 10000, 2, 4, 250, 5)
-    suite(3, 10000, 2, 4, 250, 25)
 
     // 12-Queue tests
     suite(12, 5000, 2, 4, 1000, 10)
