@@ -18,6 +18,7 @@ case class ReadRow(timestampMs:Long, value: String)
 case class WrittenRow(timestampMs: Long, value: String)
 case class InspectorFinished
 case class ReaderFinished
+case class ExtraneousMessage(id: Int)
 
 class KestrelTest extends StressTest {
   val log = Logger.get
@@ -81,6 +82,13 @@ class KestrelTest extends StressTest {
           log.debug("%s throttling %d", name, sleepMs)
           Thread.sleep(sleepMs)
           sleepMs = 3200 min sleepMs * 2
+        }
+        receiveWithin(0) {
+          case TIMEOUT => null
+          case e: ExtraneousMessage => {
+            log.trace("%s response to extraneous message %d", name, e.id)
+            reply(e)
+          }
         }
       }
       if (timeouts > 0 || offline > 0) {
@@ -146,6 +154,10 @@ class KestrelTest extends StressTest {
             reply(ReaderFinished)
             cache.shutdown()
             exit()
+          }
+          case e: ExtraneousMessage => {
+            log.trace("%s response to extraneous message %d", name, e.id)
+            reply(e)
           }
           case unknown =>
             throw new Exception(name + " received unknown " + unknown.toString)
@@ -223,6 +235,10 @@ class KestrelTest extends StressTest {
         receive {
           case row: WrittenRow => writtenRows += row
           case row: ReadRow => readRows += row
+          case e: ExtraneousMessage => {
+            // Loop through reader and writer
+            reply(writer !? (reader !? e))
+          }
           case unknown =>
             log.fatal("%s received unknown message %s", name, unknown.toString)
         }
@@ -316,9 +332,38 @@ class KestrelTest extends StressTest {
     testAwait(testSetup(p))
   }
 
-  // Pester Reader and Writer Actors with extranoues messages,
+  // Pester Reader and Writer Actors with extraneous messages,
   // ensuring that Smile doesn't attempt to eat them.
-  def testPester(p: Params) {
+  // Note: Will hang if Writer finishes while still pestering actors...
+  def testPester(count: Int) {
+    val p = new Params()
+    p.queues = queueList("smile-testpester", 1)
+    p.count = count
+    p.size = 256
+    p.sizeVariance = 256
+    // Make a slightly slower running test, to allow more waiting in Smile
+    p.writePauseOnTensMs = 1
+    p.readPauseOnTensMs = 3
+    p.writeStartPauseMs = 0
+    p.readStartPauseMs = 0
+
+    val inspectors = testSetup(p)
+    assert(inspectors.size == 1)
+    val inspector = inspectors(0)
+    // Writer actor will stop responding after its finished, so only
+    // pester for a short while.
+    for (idx <- 0 to count / 4) {
+      val sent = new ExtraneousMessage(idx)
+      log.trace("sent extraneous %d", idx)
+      inspector !? sent match {
+        case recv: ExtraneousMessage => {
+          log.trace("recv extraneous %d", recv.id)
+          assert(recv.id == sent.id)
+        }
+        case unknown => assert(false)
+      }
+    }
+    testAwait(inspectors)
   }
 
   def queueList(base: String, count: Int): List[String] = {
@@ -329,33 +374,34 @@ class KestrelTest extends StressTest {
     rv.toList
   }
 
-  def suite(queues: Int, count: Int, size: Int, variance: Int, startPauseMs: Int, rowPauseMs: Int) {
+  def suite(queues: Int, count: Int, size: Int, variance: Int,
+            startPauseMs: Int, rowPauseMs: Int)
+  {
     // Simultaneous producer consumer (with small counts, devolves to a late consumer)
     val p = new Params()
-    p.queues = queueList("smile-simultaneous", queues)
     p.count = count
     p.size = size
     p.sizeVariance = variance
+
+    // Simultaneous
+    p.queues = queueList("smile-simultaneous", queues)
     p.writePauseOnTensMs = 0
     p.readPauseOnTensMs = 0
     p.writeStartPauseMs = 0
     p.readStartPauseMs = 0
-
-    // Simultaneous
     test(p)
+
     // Late producer
     p.queues = queueList("smile-lateproducer", queues)
     p.writeStartPauseMs = startPauseMs
     p.readStartPauseMs = 0
     test(p)
-//    test(queueList("smile-lateproducer", queues), count, size, variance, 0, 0, startPauseMs, 0)
 
     // Late consumer
     p.queues = queueList("smile-lateconsumer", queues)
     p.writeStartPauseMs = 0
     p.readStartPauseMs = startPauseMs
     test(p)
-//    test(queueList("smile-lateconsumer", queues), count, size, variance, 0, 0, 0, startPauseMs)
 
     // Slow producer
     p.queues = queueList("smile-slowproducer", queues)
@@ -364,14 +410,12 @@ class KestrelTest extends StressTest {
     p.writeStartPauseMs = 0
     p.readStartPauseMs = 0
     test(p)
-//    test(queueList("smile-slowproducer", queues), count, size, variance, rowPauseMs, 0, 0, 0)
 
     // Slow consumer
     p.queues = queueList("smile-slowconsumer", queues)
     p.writePauseOnTensMs = 0
     p.readPauseOnTensMs = rowPauseMs
     test(p)
-//    test(queueList("smile-slowconsumer", queues), count, size, variance, 0, rowPauseMs, 0, 0)
   }
 
   def go() {
@@ -391,20 +435,25 @@ class KestrelTest extends StressTest {
     suite(1, 3, 10, 0, 250, 250)
 
     //
+    // Test client actor compatability.
+    //
+    testPester(512)
+
+    //
     // Single-Queue tests
     //
-    suite(1, 20000, 256, 8000, 250, 10)
+    suite(1, 20000, 256, 8000, 250, 5)
 
     //
     // 3-Queue tests
     //
-    suite(3, 20000, 256, 8000, 250, 10)
-    suite(3, 20000, 2, 4, 250, 5)
-    suite(3, 20000, 2, 4, 250, 25)
+    suite(3, 10000, 256, 8000, 250, 10)
+    suite(3, 10000, 2, 4, 250, 5)
+    suite(3, 10000, 2, 4, 250, 25)
 
     // 12-Queue tests
-    suite(12, 10000, 2, 4, 1000, 10)
-    List(2, 15, 25, 50, 75).foreach(pause => suite(12, 2000, 2, 4, pause * 10, pause))
+    suite(12, 5000, 2, 4, 1000, 10)
+    List(2, 15, 25, 50, 75).foreach(pause => suite(12, 1000, 2, 4, pause * 10, pause))
 
     log.info("TESTS PASS")
   }
