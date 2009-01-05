@@ -263,25 +263,35 @@ class KestrelTest extends StressTest {
 
   def nextInt(range: Int) = if (range == 0) 0 else rnd.nextInt(range)
 
-  def test(queues: List[String], count: Int, size: Int, sizeVariance: Int,
-           writePauseOnTensMs: Int, readPauseOnTensMs: Int,
-           writeStartPauseMs: Int, readStartPauseMs: Int)
-  {
-    log.info("TEST host=%s queues=%s", hosts(0), queues)
-    log.info("count=%d size=%d sizeVariance=%d", count, size, sizeVariance)
-    log.info("writePauseOnTensMs=%d readPauseOnTensMs=%d", writePauseOnTensMs, readPauseOnTensMs)
-    log.info("writeStartPauseMs=%d readStartPauseMs=%d", writeStartPauseMs, readStartPauseMs)
+  class Params() {
+    var queues: List[String] = _
+    var count: Int = _
+    var size: Int = _
+    var sizeVariance: Int = _
+    var writePauseOnTensMs: Int = _
+    var readPauseOnTensMs: Int = _
+    var writeStartPauseMs: Int = _
+    var readStartPauseMs: Int = _
+  }
 
-    queues.foreach(queue => drain(queue))
+  def testSetup(p: Params): List[Inspector] = {
+    log.info("TEST host=%s queues=%s", hosts(0), p.queues)
+    log.info("count=%d size=%d sizeVariance=%d", p.count, p.size, p.sizeVariance)
+    log.info("writePauseOnTensMs=%d readPauseOnTensMs=%d",
+             p.writePauseOnTensMs, p.readPauseOnTensMs)
+    log.info("writeStartPauseMs=%d readStartPauseMs=%d", p.writeStartPauseMs, p.readStartPauseMs)
+
+    p.queues.foreach(queue => drain(queue))
 
     var inspectors = new ListBuffer[Inspector]
 
-    for (queue <- queues) {
-      var inspector = new Inspector(queue, count)
+    for (queue <- p.queues) {
+      var inspector = new Inspector(queue, p.count)
       inspectors += inspector
-      var reader = new Reader(queue, readPauseOnTensMs, readStartPauseMs, inspector)
+      var reader = new Reader(queue, p.readPauseOnTensMs, p.readStartPauseMs, inspector)
       var writer = new Writer(
-        queue, count, size, sizeVariance, writePauseOnTensMs, writeStartPauseMs, inspector)
+        queue, p.count, p.size, p.sizeVariance, p.writePauseOnTensMs, p.writeStartPauseMs,
+        inspector)
       inspector.set(reader, writer)
 
       inspector.start
@@ -289,13 +299,26 @@ class KestrelTest extends StressTest {
       writer.start
     }
 
+    inspectors.toList
+  }
+
+  def testAwait(inspectors: List[Inspector]) {
     for (inspector <- inspectors) {
-      log.trace("go await inspector %s", inspector.name)
+      log.trace("await inspector %s", inspector.name)
       while (!inspector.finished.await(10, TimeUnit.SECONDS)) {
-        log.debug("go await inspector %s", inspector.name)
+        log.debug("await inspector %s", inspector.name)
       }
     }
-    log.trace("go finished")
+    log.trace("TEST finished")
+  }
+
+  def test(p: Params) {
+    testAwait(testSetup(p))
+  }
+
+  // Pester Reader and Writer Actors with extranoues messages,
+  // ensuring that Smile doesn't attempt to eat them.
+  def testPester(p: Params) {
   }
 
   def queueList(base: String, count: Int): List[String] = {
@@ -308,22 +331,56 @@ class KestrelTest extends StressTest {
 
   def suite(queues: Int, count: Int, size: Int, variance: Int, startPauseMs: Int, rowPauseMs: Int) {
     // Simultaneous producer consumer (with small counts, devolves to a late consumer)
-    test(queueList("smile-simultaneous", queues), count, size, variance, 0, 0, 0, 0)
+    val p = new Params()
+    p.queues = queueList("smile-simultaneous", queues)
+    p.count = count
+    p.size = size
+    p.sizeVariance = variance
+    p.writePauseOnTensMs = 0
+    p.readPauseOnTensMs = 0
+    p.writeStartPauseMs = 0
+    p.readStartPauseMs = 0
+
+    // Simultaneous
+    test(p)
     // Late producer
-    test(queueList("smile-lateproducer", queues), count, size, variance, 0, 0, startPauseMs, 0)
+    p.queues = queueList("smile-lateproducer", queues)
+    p.writeStartPauseMs = startPauseMs
+    p.readStartPauseMs = 0
+    test(p)
+//    test(queueList("smile-lateproducer", queues), count, size, variance, 0, 0, startPauseMs, 0)
+
     // Late consumer
-    test(queueList("smile-lateconsumer", queues), count, size, variance, 0, 0, 0, startPauseMs)
+    p.queues = queueList("smile-lateconsumer", queues)
+    p.writeStartPauseMs = 0
+    p.readStartPauseMs = startPauseMs
+    test(p)
+//    test(queueList("smile-lateconsumer", queues), count, size, variance, 0, 0, 0, startPauseMs)
+
     // Slow producer
-    test(queueList("smile-slowproducer", queues), count, size, variance, rowPauseMs, 0, 0, 0)
+    p.queues = queueList("smile-slowproducer", queues)
+    p.writePauseOnTensMs = rowPauseMs
+    p.readPauseOnTensMs = 0
+    p.writeStartPauseMs = 0
+    p.readStartPauseMs = 0
+    test(p)
+//    test(queueList("smile-slowproducer", queues), count, size, variance, rowPauseMs, 0, 0, 0)
+
     // Slow consumer
-    test(queueList("smile-slowconsumer", queues), count, size, variance, 0, rowPauseMs, 0, 0)
+    p.queues = queueList("smile-slowconsumer", queues)
+    p.writePauseOnTensMs = 0
+    p.readPauseOnTensMs = rowPauseMs
+    test(p)
+//    test(queueList("smile-slowconsumer", queues), count, size, variance, 0, rowPauseMs, 0, 0)
   }
 
   def go() {
     // The default retry_delay really drags a test out in the face of a network issue.
     config.setInt("retry_delay", 5)
     // The default read_timeout is a bit too tetchy when faced with even moderate network latency
+    // For example, even over Wifi, the 2 second timeout is occasionally hit.
     config.setInt("read_timeout", 8)
+    log.debug("Restting read_timeout to %d", config.getInt("read_timeout").get)
     config.setString("servers", hosts(0))
     config.setString("distribution", "default")
     config.setString("hash", "crc32-itu")
@@ -336,18 +393,18 @@ class KestrelTest extends StressTest {
     //
     // Single-Queue tests
     //
-    suite(1, 10000, 256, 8000, 250, 10)
+    suite(1, 20000, 256, 8000, 250, 10)
 
     //
     // 3-Queue tests
     //
-    suite(3, 10000, 256, 8000, 250, 10)
-    suite(3, 10000, 2, 4, 250, 5)
-    suite(3, 10000, 2, 4, 250, 25)
+    suite(3, 20000, 256, 8000, 250, 10)
+    suite(3, 20000, 2, 4, 250, 5)
+    suite(3, 20000, 2, 4, 250, 25)
 
     // 12-Queue tests
     suite(12, 10000, 2, 4, 1000, 10)
-    List(2, 15, 25, 50, 75).foreach(pause => suite(12, 500, 2, 4, pause * 10, pause))
+    List(2, 15, 25, 50, 75).foreach(pause => suite(12, 2000, 2, 4, pause * 10, pause))
 
     log.info("TESTS PASS")
   }

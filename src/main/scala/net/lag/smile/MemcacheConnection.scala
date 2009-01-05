@@ -59,7 +59,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       case ConnectionFailed => throw new MemcacheServerOffline
       case Error(description) => throw new MemcacheServerException(description)
       case GetResponse(values) => Map.empty ++ (for (v <- values) yield (v.key, v))
-      case x => throw new MemcacheServerException("unexpected: " + x)
+      // Note: Do not catch unknown messages, they may be expected by a client's actor.
     }
   }
 
@@ -77,20 +77,19 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           case _ => throw new MemcacheServerException("too many results for single get: " +
             values.length)
         }
-      case x => throw new MemcacheServerException("unexpected: " + x)
+      // Note: Do not catch unknown messages, they may be expected by a client's actor.
     }
   }
 
   @throws(classOf[MemcacheServerException])
   def set(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit = {
-    serverActor ! Store("set", key, flags, expiry, value)
-    receive {
+    serverActor !? Store("set", key, flags, expiry, value) match {
       case Timeout => throw new MemcacheServerTimeout
       case ConnectionFailed => throw new MemcacheServerOffline
       case Error(description) => throw new MemcacheServerException(description)
       case MemcacheResponse.Stored =>
       case MemcacheResponse.NotStored => throw new NotStoredException
-      case x => throw new MemcacheServerException("unexpected: " + x)
+      // Note: Do not catch unknown messages, they may be expected by a client's actor.
     }
   }
 
@@ -129,7 +128,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
     }
   }
 
-  private[smile] def ensureConnected: Boolean = {
+  private[smile] def ensureConnected(): Boolean = {
     session match {
       case None =>
         connect
@@ -171,7 +170,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           self.exit
 
         case Get(query, key) =>
-          if (!ensureConnected) {
+          if (!ensureConnected()) {
             reply(ConnectionFailed)
           } else {
             for (s <- session) {
@@ -183,7 +182,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           }
 
         case Store(query, key, flags, expiry, data) =>
-          if (!ensureConnected) {
+          if (!ensureConnected()) {
             reply(ConnectionFailed)
           } else {
             for (s <- session) {
