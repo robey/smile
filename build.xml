@@ -15,13 +15,36 @@
   </target>
 
   <target name="manygets" depends="prepare,compile-tests">
+    <!-- 'hosts' can be overridden on the command line -->
+    <property name="hosts" value="localhost:11211 localhost:11212 localhost:11213" />
     <java classname="scala.tools.nsc.MainGenericRunner" fork="true" failonerror="true">
       <classpath>
         <path refid="test.path" />
         <pathelement location="${target.dir}/classes" />
         <pathelement location="${target.dir}/test-classes" />
       </classpath>
-      <arg line="net.lag.smile.stress.ManyGets" />
+      <arg line="net.lag.smile.stress.ManyGets ${hosts}" />
+      <jvmarg value="-Xms1024m" />
+      <jvmarg value="-Xmx1024m" />
     </java>
   </target>
+
+  <target name="kestrel" depends="prepare,compile-tests">
+    <java classname="scala.tools.nsc.MainGenericRunner" fork="true" failonerror="true">
+      <classpath>
+        <path refid="test.path" />
+        <pathelement location="${target.dir}/classes" />
+        <pathelement location="${target.dir}/test-classes" />
+      </classpath>
+      <arg line="net.lag.smile.stress.Kestrel localhost:22133" />
+      <jvmarg value="-Xms512m" />
+      <jvmarg value="-Xmx1024m" />
+      <jvmarg value="-ea" />
+      <jvmarg value="-esa" />
+      <jvmarg value="-XX:+UseConcMarkSweepGC" />
+      <jvmarg value="-XX:NewSize=256m" />
+      <jvmarg value="-server" />
+    </java>
+  </target>
+
 </project>

@@ -5,6 +5,7 @@
 
 package net.lag.smile
 
+import java.io.IOException
 import java.net.InetSocketAddress
 import scala.actors.{Actor, OutputChannel}
 import scala.actors.Actor._
@@ -59,6 +60,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       case ConnectionFailed => throw new MemcacheServerOffline
       case Error(description) => throw new MemcacheServerException(description)
       case GetResponse(values) => Map.empty ++ (for (v <- values) yield (v.key, v))
+      // Note: Do not catch unknown messages, they may be expected by a client's actor.
     }
   }
 
@@ -76,20 +78,19 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           case _ => throw new MemcacheServerException("too many results for single get: " +
             values.length)
         }
-      case x => throw new RuntimeException("ACCCCCK " + x)
+      // Note: Do not catch unknown messages, they may be expected by a client's actor.
     }
   }
 
   @throws(classOf[MemcacheServerException])
   def set(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit = {
-    serverActor ! Store("set", key, flags, expiry, value)
-    receive {
+    serverActor !? Store("set", key, flags, expiry, value) match {
       case Timeout => throw new MemcacheServerTimeout
       case ConnectionFailed => throw new MemcacheServerOffline
       case Error(description) => throw new MemcacheServerException(description)
       case MemcacheResponse.Stored =>
       case MemcacheResponse.NotStored => throw new NotStoredException
-      case x => throw new MemcacheServerException("unexpected: " + x)
+      // Note: Do not catch unknown messages, they may be expected by a client's actor.
     }
   }
 
@@ -128,7 +129,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
     }
   }
 
-  private[smile] def ensureConnected: Boolean = {
+  private[smile] def ensureConnected(): Boolean = {
     session match {
       case None =>
         connect
@@ -170,7 +171,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           self.exit
 
         case Get(query, key) =>
-          if (!ensureConnected) {
+          if (!ensureConnected()) {
             reply(ConnectionFailed)
           } else {
             for (s <- session) {
@@ -182,7 +183,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           }
 
         case Store(query, key, flags, expiry, data) =>
-          if (!ensureConnected) {
+          if (!ensureConnected()) {
             reply(ConnectionFailed)
           } else {
             for (s <- session) {
@@ -201,7 +202,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           log.error("unsolicited response from server %s: %s", this, message)
         case MinaMessage.MessageSent(message) =>
         case MinaMessage.ExceptionCaught(cause) =>
-          log.error(cause, "exception in actor for %s", this)
+          log.error(cause, "unsolicited exception in actor for %s", this)
           disconnect
         case MinaMessage.SessionIdle(status) =>
           // probably leftover from a previous timeout.
@@ -223,8 +224,15 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       case MinaMessage.MessageReceived(message) =>
         handler(message)
       case MinaMessage.ExceptionCaught(cause) =>
-        log.error(cause, "exception in actor for %s", this)
         disconnect
+        cause match {
+          case e: IOException =>
+            log.error(cause, "exception in actor for %s ioexception", this)
+            sender ! ConnectionFailed
+          case e =>
+            log.error(cause, "exception in actor for %s", this)
+            sender ! Error(cause.toString)
+        }
       case MinaMessage.SessionIdle(status) =>
         log.error("timeout for %s", this)
         disconnect

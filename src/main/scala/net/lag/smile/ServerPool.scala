@@ -88,6 +88,7 @@ object ServerPool {
   def fromConfig(attr: ConfigMap) = {
     val pool = new ServerPool(attr.getBool("trace", false))
     pool.servers = (for (desc <- attr.getList("servers")) yield makeConnection(desc, pool)).toArray
+    if (pool.servers.length == 0) throw new IllegalArgumentException("No servers specified")
     for (n <- attr.getInt("retry_delay")) {
       pool.retryDelay = n * 1000
     }

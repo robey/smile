@@ -5,31 +5,23 @@
 
 package net.lag.smile.stress
 
+import java.util.Random
+import java.util.concurrent.CountDownLatch
 import net.lag.configgy.Configgy
 import net.lag.extensions._
 import net.lag.logging.{Level, Logger}
 import net.lag.smile.MemcacheClient
-import java.util.Random
-import java.util.concurrent.CountDownLatch
 
 
-object ManyGets {
-  def report(name: String, count: Int)(f: => Unit): Unit = {
-    val start = System.currentTimeMillis
-    f
-    val duration = System.currentTimeMillis - start
-    val average = duration * 1.0 / count
-    println("%s: %d in %d msec (%.2f msec each)".format(name, count, duration, average))
-  }
-
+class ManyGetsTest extends StressTest {
   // get the same value N times in a row.
-  def serialGets(count: Int) = {
-    println("serial gets: %d".format(count))
-    val cache = MemcacheClient.create(Array("localhost"), "default", "crc32-itu")
+  def serialGets(count: Int, size: Int) = {
+    val host = hosts(0)
+    println("serialGets: count=%d size=%d host=%s".format(count, size, host))
+    val cache = MemcacheClient.create(Array(host), "default", "crc32-itu")
 
     val key = "toasters"
-    val r = new Random
-    val value = "x" + r.nextInt(1000000)
+    val value = generateValue(size)
     cache.set(key, value)
 
     report("toasters", count) {
@@ -43,13 +35,13 @@ object ManyGets {
   }
 
   // get the same value N times in a row from each of M threads.
-  def parallelGets(count: Int, threads: Int) = {
-    println("parallel gets: %d on %d threads".format(count, threads))
-    val cache = MemcacheClient.create(Array("localhost"), "default", "crc32-itu")
+  def parallelGets(count: Int, threads: Int, size: Int) = {
+    val host = hosts(0)
+    println("parallel gets: count=%d threads=%d size=%d host=%s".format(count, threads, size, host))
+    val cache = MemcacheClient.create(Array(host), "default", "crc32-itu")
 
     val key = "toasters"
-    val r = new Random
-    val value = "x" + r.nextInt(1000000)
+    val value = generateValue(size)
     cache.set(key, value)
 
     val latch = new CountDownLatch(1)
@@ -77,14 +69,57 @@ object ManyGets {
     cache.shutdown
   }
 
-  // get one of K values, N times each from M threads, against 3 memcache servers.
-  def parallelGetsFrom3(count: Int, threads: Int, keyCount: Int) = {
-    println("parallel gets: %d on %d threads from 3 servers".format(count, threads))
-    val cache = MemcacheClient.create(Array("localhost", "localhost:11212", "localhost:11213"),
-      "default", "crc32-itu")
+  // Put a value, get a value, of slightly varying lengths
+  def serialPutAndGet(count: Int, size: Int) = {
+    println("serialPutAndGet: count=%d size=%d".format(count,size))
+    val cache = MemcacheClient.create(Array(hosts(0)), "default", "crc32-itu")
 
-    val r = new Random
-    val keys: List[String] = (for (i <- 1 to keyCount) yield "toaster" + r.nextInt(1000000)).toList
+    val key = "toasters"
+    val numValues = 10
+    val values: List[String] =
+      (for (i <- 1 to numValues) yield generateValue(size + rnd.nextInt(10))).toList
+
+    report("toasters", count) {
+      for (i <- 1 to count / numValues) {
+        for (value <- values) {
+          cache.set(key, value)
+          if (cache.get(key) != Some(value)) {
+            throw new Exception("aiieeee!")
+          }
+        }
+      }
+    }
+    cache.shutdown
+  }
+
+  // Generally put values, getting only occasionally to verify
+  def serialPuts(count: Int, size: Int) = {
+    println("serialPuts: count=%d size=%d".format(count,size))
+    val cache = MemcacheClient.create(Array(hosts(0)), "default", "crc32-itu")
+
+    val key = "toasters"
+    val numValues = 10
+    val values: List[String] = generateValues(size, 10, numValues)
+
+    report("toasters", count) {
+      for (i <- 1 to count / numValues) {
+        for (value <- values) {
+          cache.set(key, value)
+          if (rnd.nextInt(100) % 1 == 0 && cache.get(key) != Some(value)) {
+            throw new Exception("aiieeee!")
+          }
+        }
+      }
+    }
+    cache.shutdown
+  }
+
+  // get one of K values, N times each from M threads, against 3 memcache servers.
+  def parallelGetsFrom3(count: Int, threads: Int, keyCount: Int, size: Int) = {
+    println("parallel gets: count=%d threads=%d size=%d from hosts=%s".format(count, threads, size, hosts.toString))
+    val cache = MemcacheClient.create(hosts, "default", "crc32-itu")
+
+    val keys: List[String] = (for (i <- 1 to keyCount) yield generateValue(size)).toList
     for (k <- keys) {
       cache.set(k, k)
     }
@@ -121,13 +156,35 @@ object ManyGets {
       for (t <- threadList) t.join
     }
     cache.shutdown
-
   }
 
+  def test() {
+    serialGets(1000, 10)
+    serialPutAndGet(1000, 10)
+    serialPutAndGet(1000, 10)
+    serialPuts(1000, 10)
+    parallelGets(1000, 10, 10)
+    parallelGetsFrom3(1000, 10, 25, 10)
+
+    serialGets(10000, 5000)
+    serialGets(10000, 5001)
+    serialPutAndGet(10000, 5002)
+    parallelGets(10000, 100, 5003)
+    serialPuts(10000, 5007)
+    parallelGetsFrom3(4000, 100, 25, 6004)
+    parallelGetsFrom3(4000, 100, 25, 15004)
+  }
+}
+
+
+object ManyGets {
   def main(args: Array[String]): Unit = {
-    Logger.get("").setLevel(Logger.TRACE)
-    serialGets(1000)
-    parallelGets(1000, 10)
-    parallelGetsFrom3(1000, 10, 25)
+    if (args.size != 3) {
+      println("Must specify 3 hosts")
+    } else {
+      val mg = new ManyGetsTest()
+      mg.setHosts(args)
+      mg.test()
+    }
   }
 }
