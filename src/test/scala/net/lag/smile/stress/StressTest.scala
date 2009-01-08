@@ -10,8 +10,8 @@ import net.lag.extensions._
 import net.lag.logging.{Level, Logger}
 import java.util.Random
 
+
 trait StressTest {
-//  Logger.get("").setLevel(Logger.TRACE)
   val rnd = new Random(System.currentTimeMillis)
   var hosts: Array[String] = _
 
@@ -34,6 +34,6 @@ trait StressTest {
   }
 
   def generateValues(size: Int, variance: Int, count: Int): List[String] = {
-      (for (i <- 1 to count) yield generateValue(size + rnd.nextInt(variance))).toList
+    (for (i <- 1 to count) yield generateValue(size + rnd.nextInt(variance))).toList
   }
 }

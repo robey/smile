@@ -5,6 +5,7 @@
 
 package net.lag.smile
 
+import java.io.IOException
 import java.net.InetSocketAddress
 import scala.actors.{Actor, OutputChannel}
 import scala.actors.Actor._
@@ -201,7 +202,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           log.error("unsolicited response from server %s: %s", this, message)
         case MinaMessage.MessageSent(message) =>
         case MinaMessage.ExceptionCaught(cause) =>
-          log.error(cause, "unsolicted exception in actor for %s", this)
+          log.error(cause, "unsolicited exception in actor for %s", this)
           disconnect
         case MinaMessage.SessionIdle(status) =>
           // probably leftover from a previous timeout.
@@ -224,12 +225,13 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         handler(message)
       case MinaMessage.ExceptionCaught(cause) =>
         disconnect
-        if (cause.isInstanceOf[java.io.IOException]) {
-          log.error(cause, "exception in actor for %s ioexception", this)
-          sender ! ConnectionFailed
-        } else {
-          log.error(cause, "exception in actor for %s", this)
-          sender ! Error(cause.toString)
+        cause match {
+          case e: IOException =>
+            log.error(cause, "exception in actor for %s ioexception", this)
+            sender ! ConnectionFailed
+          case e =>
+            log.error(cause, "exception in actor for %s", this)
+            sender ! Error(cause.toString)
         }
       case MinaMessage.SessionIdle(status) =>
         log.error("timeout for %s", this)

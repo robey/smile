@@ -12,11 +12,12 @@ import net.lag.extensions._
 import net.lag.logging.{Level, Logger}
 import net.lag.smile.MemcacheClient
 
+
 class ManyGetsTest extends StressTest {
   // get the same value N times in a row.
   def serialGets(count: Int, size: Int) = {
     val host = hosts(0)
-    println("serialGets: count=%d size=%d host=%s".format(count,size, host))
+    println("serialGets: count=%d size=%d host=%s".format(count, size, host))
     val cache = MemcacheClient.create(Array(host), "default", "crc32-itu")
 
     val key = "toasters"
@@ -155,26 +156,26 @@ class ManyGetsTest extends StressTest {
       for (t <- threadList) t.join
     }
     cache.shutdown
-
   }
 
   def test() {
-      serialGets(1000, 10)
-      serialPutAndGet(1000, 10)
-      serialPutAndGet(1000, 10)
-      serialPuts(1000, 10)
-      parallelGets(1000, 10, 10)
-      parallelGetsFrom3(1000, 10, 25, 10)
+    serialGets(1000, 10)
+    serialPutAndGet(1000, 10)
+    serialPutAndGet(1000, 10)
+    serialPuts(1000, 10)
+    parallelGets(1000, 10, 10)
+    parallelGetsFrom3(1000, 10, 25, 10)
 
-      serialGets(10000, 5000)
-      serialGets(10000, 5001)
-      serialPutAndGet(10000, 5002)
-      parallelGets(10000, 100, 5003)
-      serialPuts(10000, 5007)
-      parallelGetsFrom3(4000, 100, 25, 6004)
-      parallelGetsFrom3(4000, 100, 25, 15004)
+    serialGets(10000, 5000)
+    serialGets(10000, 5001)
+    serialPutAndGet(10000, 5002)
+    parallelGets(10000, 100, 5003)
+    serialPuts(10000, 5007)
+    parallelGetsFrom3(4000, 100, 25, 6004)
+    parallelGetsFrom3(4000, 100, 25, 15004)
   }
 }
+
 
 object ManyGets {
   def main(args: Array[String]): Unit = {
