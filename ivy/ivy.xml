@@ -2,7 +2,7 @@
   <info
     organisation="net.lag"
     module="smile"
-    revision="0.5"
+    revision="0.6"
     e:testclass="net.lag.smile.TestRunner"
     e:buildpackage="net.lag.smile"
   />
