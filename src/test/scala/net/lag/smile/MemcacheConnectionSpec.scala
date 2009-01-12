@@ -153,5 +153,44 @@ object MemcacheConnectionSpec extends Specification {
         server.fromClient mustEqual List("set cat 0 500 5\r\nhello\r\n")
       }
     }
+
+    // impl is identical to "set"
+    "add" in {
+      "a single value" in {
+        server = new FakeMemcacheConnection(Receive(24) :: Send("STORED\r\n".getBytes) :: Nil)
+        server.start
+
+        conn = new MemcacheConnection("localhost", server.port, 1)
+        conn.pool = pool
+        conn.add("cat", "hello".getBytes, 0, 500)
+        server.fromClient mustEqual List("add cat 0 500 5\r\nhello\r\n")
+      }
+    }
+
+    // impl is identical to "set"
+    "append" in {
+      "a single value" in {
+        server = new FakeMemcacheConnection(Receive(27) :: Send("STORED\r\n".getBytes) :: Nil)
+        server.start
+
+        conn = new MemcacheConnection("localhost", server.port, 1)
+        conn.pool = pool
+        conn.append("cat", "hello".getBytes, 0, 500)
+        server.fromClient mustEqual List("append cat 0 500 5\r\nhello\r\n")
+      }
+    }
+
+    // impl is identical to "set"
+    "prepend" in {
+      "a single value" in {
+        server = new FakeMemcacheConnection(Receive(28) :: Send("STORED\r\n".getBytes) :: Nil)
+        server.start
+
+        conn = new MemcacheConnection("localhost", server.port, 1)
+        conn.pool = pool
+        conn.prepend("cat", "hello".getBytes, 0, 500)
+        server.fromClient mustEqual List("prepend cat 0 500 5\r\nhello\r\n")
+      }
+    }
   }
 }

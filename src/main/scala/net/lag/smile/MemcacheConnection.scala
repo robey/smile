@@ -60,7 +60,6 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       case ConnectionFailed => throw new MemcacheServerOffline
       case Error(description) => throw new MemcacheServerException(description)
       case GetResponse(values) => Map.empty ++ (for (v <- values) yield (v.key, v))
-      // Note: Do not catch unknown messages, they may be expected by a client's actor.
     }
   }
 
@@ -78,21 +77,35 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           case _ => throw new MemcacheServerException("too many results for single get: " +
             values.length)
         }
-      // Note: Do not catch unknown messages, they may be expected by a client's actor.
     }
   }
 
   @throws(classOf[MemcacheServerException])
-  def set(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit = {
-    serverActor !? Store("set", key, flags, expiry, value) match {
+  def store(query: String, key: String, value: Array[Byte], flags: Int, expiry: Int): Unit = {
+    serverActor !? Store(query, key, flags, expiry, value) match {
       case Timeout => throw new MemcacheServerTimeout
       case ConnectionFailed => throw new MemcacheServerOffline
       case Error(description) => throw new MemcacheServerException(description)
       case MemcacheResponse.Stored =>
       case MemcacheResponse.NotStored => throw new NotStoredException
-      // Note: Do not catch unknown messages, they may be expected by a client's actor.
     }
   }
+
+  @throws(classOf[MemcacheServerException])
+  def set(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit =
+    store("set", key, value, flags, expiry)
+
+  @throws(classOf[MemcacheServerException])
+  def add(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit =
+    store("add", key, value, flags, expiry)
+
+  @throws(classOf[MemcacheServerException])
+  def append(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit =
+    store("append", key, value, flags, expiry)
+
+  @throws(classOf[MemcacheServerException])
+  def prepend(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit =
+    store("prepend", key, value, flags, expiry)
 
   /**
    * Stop the actor associated with this connection, and disconnect from the server if
