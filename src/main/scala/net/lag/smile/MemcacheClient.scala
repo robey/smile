@@ -125,30 +125,201 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     Map.empty ++ (for ((key, data) <- getData(keys).elements) yield (key, codec.decode(data)))
   }
 
+  /**
+   * Set an item in memcache as a byte array.
+   *
+   * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)
+   * @param expiry absolute or relative time, in seconds or epoch itme, when this item should
+   *   expire from the cache (0 = never)
+   */
   @throws(classOf[MemcacheServerException])
   def setData(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit = {
     val (node, rkey) = nodeForKey(key)
     node.set(rkey, value, flags, expiry)
   }
 
+  /**
+   * Set an item in memcache as a byte array.
+   * The item's expiration will be "never".
+   */
   @throws(classOf[MemcacheServerException])
   def setData(key: String, value: Array[Byte]): Unit = setData(key, value, 0, 0)
 
+  /**
+   * Encode an item using the default codec and set it into the memcache pool.
+   *
+   * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)
+   * @param expiry absolute or relative time, in seconds or epoch itme, when this item should
+   *   expire from the cache (0 = never)
+   */
   @throws(classOf[MemcacheServerException])
   def set(key: String, value: T, flags: Int, expiry: Int): Unit = {
     setData(key, codec.encode(value), flags, expiry)
   }
 
+  /**
+   * Encode an item using the default codec and set it into the memcache pool.
+   * The item's expiration will be "never".
+   */
   @throws(classOf[MemcacheServerException])
   def set(key: String, value: T): Unit = set(key, value, 0, 0)
 
+  /**
+   * Encode an item using the given codec and set it into the memcache pool.
+   *
+   * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)
+   * @param expiry absolute or relative time, in seconds or epoch itme, when this item should
+   *   expire from the cache (0 = never)
+   */
   @throws(classOf[MemcacheServerException])
   def set[A](key: String, value: A, flags: Int, expiry: Int, codec: MemcacheCodec[A]): Unit = {
     setData(key, codec.encode(value), flags, expiry)
   }
 
+  /**
+   * Encode an item using the given codec and set it into the memcache pool.
+   * The item's expiration will be "never".
+   */
   @throws(classOf[MemcacheServerException])
   def set[A](key: String, value: A, codec: MemcacheCodec[A]): Unit = set(key, value, 0, 0, codec)
+
+  /**
+   * If nothing else is currently stored for this key, add an item to memcache as a byte array.
+   *
+   * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)
+   * @param expiry absolute or relative time, in seconds or epoch itme, when this item should
+   *   expire from the cache (0 = never)
+   * @return true if the item was added; false if something was already stored at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def addData(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean = {
+    val (node, rkey) = nodeForKey(key)
+    node.add(rkey, value, flags, expiry)
+  }
+
+  /**
+   * If nothing else is currently stored for this key, add an item to memcache as a byte array.
+   * The item's expiration will be "never".
+   *
+   * @return true if the item was added; false if something was already stored at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def addData(key: String, value: Array[Byte]): Unit = addData(key, value, 0, 0)
+
+  /**
+   * If nothing else is currently stored for this key, add an item to memcache using the default
+   * codec.
+   *
+   * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)
+   * @param expiry absolute or relative time, in seconds or epoch itme, when this item should
+   *   expire from the cache (0 = never)
+   * @return true if the item was added; false if something was already stored at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def add(key: String, value: T, flags: Int, expiry: Int): Unit = {
+    addData(key, codec.encode(value), flags, expiry)
+  }
+
+  /**
+   * If nothing else is currently stored for this key, add an item to memcache using the default
+   * codec.
+   * The item's expiration will be "never".
+   *
+   * @return true if the item was added; false if something was already stored at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def add(key: String, value: T): Unit = add(key, value, 0, 0)
+
+  /**
+   * If nothing else is currently stored for this key, add an item to memcache using the given
+   * codec.
+   *
+   * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)
+   * @param expiry absolute or relative time, in seconds or epoch itme, when this item should
+   *   expire from the cache (0 = never)
+   * @return true if the item was added; false if something was already stored at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def add[A](key: String, value: A, flags: Int, expiry: Int, codec: MemcacheCodec[A]): Unit = {
+    addData(key, codec.encode(value), flags, expiry)
+  }
+
+  /**
+   * If nothing else is currently stored for this key, add an item to memcache using the given
+   * codec.
+   * The item's expiration will be "never".
+   *
+   * @return true if the item was added; false if something was already stored at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def add[A](key: String, value: A, codec: MemcacheCodec[A]): Unit = add(key, value, 0, 0, codec)
+
+  /**
+   * If this key has a value, replace it with the given byte array.
+   *
+   * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)
+   * @param expiry absolute or relative time, in seconds or epoch itme, when this item should
+   *   expire from the cache (0 = never)
+   * @return true if the item was replaced; false if there was no data at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def replaceData(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean = {
+    val (node, rkey) = nodeForKey(key)
+    node.replace(rkey, value, flags, expiry)
+  }
+
+  /**
+   * If this key has a value, replace it with the given byte array.
+   * The item's expiration will be "never".
+   *
+   * @return true if the item was replaced; false if there was no data at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def replaceData(key: String, value: Array[Byte]): Unit = replaceData(key, value, 0, 0)
+
+  /**
+   * If this key has a value, replace it with the given data encoded using the default codec.
+   *
+   * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)
+   * @param expiry absolute or relative time, in seconds or epoch itme, when this item should
+   *   expire from the cache (0 = never)
+   * @return true if the item was replaced; false if there was no data at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def replace(key: String, value: T, flags: Int, expiry: Int): Unit = {
+    replaceData(key, codec.encode(value), flags, expiry)
+  }
+
+  /**
+   * If this key has a value, replace it with the given data encoded using the default codec.
+   * The item's expiration will be "never".
+   *
+   * @return true if the item was replaced; false if there was no data at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def replace(key: String, value: T): Unit = replace(key, value, 0, 0)
+
+  /**
+   * If this key has a value, replace it with the given data encoded using the given codec.
+   *
+   * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)
+   * @param expiry absolute or relative time, in seconds or epoch itme, when this item should
+   *   expire from the cache (0 = never)
+   * @return true if the item was replaced; false if there was no data at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def replace[A](key: String, value: A, flags: Int, expiry: Int, codec: MemcacheCodec[A]): Unit = {
+    replaceData(key, codec.encode(value), flags, expiry)
+  }
+
+  /**
+   * If this key has a value, replace it with the given data encoded using the given codec.
+   * The item's expiration will be "never".
+   *
+   * @return true if the item was replaced; false if there was no data at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def replace[A](key: String, value: A, codec: MemcacheCodec[A]): Unit = replace(key, value, 0, 0, codec)
 
 
   private def nodeForKey(key: String): (MemcacheConnection, String) = {
