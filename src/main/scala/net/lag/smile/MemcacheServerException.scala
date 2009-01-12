@@ -17,3 +17,5 @@ class MemcacheServerTimeout extends MemcacheServerException("timeout")
 class MemcacheServerOffline extends MemcacheServerException("server is unreachable")
 
 class NotStoredException extends MemcacheServerException("not stored")
+
+class KeyTooLongException extends MemcacheServerException("key too long")

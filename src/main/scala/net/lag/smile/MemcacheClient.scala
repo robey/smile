@@ -12,11 +12,16 @@ import scala.collection.mutable
 
 
 /**
+ * A memcache client that talks to a pool of servers, and gets and sets values using a codec
+ * to convert them to/from binary strings.
  *
+ * Convenience factory methods exist on the `MemcacheClient` object.
  */
 class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   private var pool: ServerPool = null
   var namespace: Option[String] = None
+
+  val MAX_KEY_SIZE = 250
 
 
   def setPool(pool: ServerPool) = {
@@ -151,11 +156,17 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
       case None => key
       case Some(prefix) => prefix + ":" + key
     }
+    if (realKey.length > MAX_KEY_SIZE) {
+      throw new KeyTooLongException
+    }
     (locator.findNode(realKey.getBytes("utf-8")), realKey)
   }
 }
 
 
+/**
+ * Factory methods for creating `MemcacheClient` objects.
+ */
 object MemcacheClient {
   /**
    * Create a new MemcacheClient from a server list and node locator, using

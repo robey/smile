@@ -6,13 +6,14 @@
 package net.lag.smile
 
 import org.specs._
+import scala.collection.mutable
 import java.util.concurrent.CountDownLatch
 
 
 object MemcacheClientSpec extends Specification {
 
   var pool: ServerPool = null
-  var servers: List[FakeMemcacheConnection] = Nil
+  val servers = new mutable.ListBuffer[FakeMemcacheConnection]
   var client: MemcacheClient[String] = null
 
   def makeServers(seed: List[List[Task]]) = {
@@ -30,7 +31,7 @@ object MemcacheClientSpec extends Specification {
       }
     }
 
-    var connections: List[MemcacheConnection] = Nil
+    val connections = new mutable.ListBuffer[MemcacheConnection]
     pool = new ServerPool
     for (tasks <- seed) {
       val server = new FakeMemcacheConnection(tasks)
@@ -50,8 +51,8 @@ object MemcacheClientSpec extends Specification {
       for (s <- servers) {
         s.stop
       }
-      servers = Nil
-      client.shutdown
+      servers.clear()
+      client.shutdown()
     }
 
 
@@ -147,6 +148,11 @@ object MemcacheClientSpec extends Specification {
         s.awaitConnection(500) mustBe true
       }
       servers(0).fromClient mustEqual List("get a:a a:b a:c\r\n")
+    }
+
+    "reject keys that are too long" in {
+      makeServers(List(Nil))
+      client.get("x" * 300) must throwA(new KeyTooLongException)
     }
   }
 }
