@@ -81,30 +81,34 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   }
 
   @throws(classOf[MemcacheServerException])
-  def store(query: String, key: String, value: Array[Byte], flags: Int, expiry: Int): Unit = {
+  def store(query: String, key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean = {
     serverActor !? Store(query, key, flags, expiry, value) match {
       case Timeout => throw new MemcacheServerTimeout
       case ConnectionFailed => throw new MemcacheServerOffline
       case Error(description) => throw new MemcacheServerException(description)
-      case MemcacheResponse.Stored =>
-      case MemcacheResponse.NotStored => throw new NotStoredException
+      case MemcacheResponse.Stored => true
+      case MemcacheResponse.NotStored => false
     }
   }
 
   @throws(classOf[MemcacheServerException])
-  def set(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit =
+  def set(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean =
     store("set", key, value, flags, expiry)
 
   @throws(classOf[MemcacheServerException])
-  def add(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit =
+  def add(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean =
     store("add", key, value, flags, expiry)
 
   @throws(classOf[MemcacheServerException])
-  def append(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit =
+  def replace(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean =
+    store("replace", key, value, flags, expiry)
+
+  @throws(classOf[MemcacheServerException])
+  def append(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean =
     store("append", key, value, flags, expiry)
 
   @throws(classOf[MemcacheServerException])
-  def prepend(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit =
+  def prepend(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean =
     store("prepend", key, value, flags, expiry)
 
   /**

@@ -144,7 +144,7 @@ object MemcacheConnectionSpec extends Specification {
       }
 
       "with server error" in {
-        server = new FakeMemcacheConnection(Receive(24) :: Send("NOT_STORED\r\n".getBytes) :: Nil)
+        server = new FakeMemcacheConnection(Receive(24) :: Send("ERROR\r\n".getBytes) :: Nil)
         server.start
 
         conn = new MemcacheConnection("localhost", server.port, 1)
@@ -162,8 +162,41 @@ object MemcacheConnectionSpec extends Specification {
 
         conn = new MemcacheConnection("localhost", server.port, 1)
         conn.pool = pool
-        conn.add("cat", "hello".getBytes, 0, 500)
+        conn.add("cat", "hello".getBytes, 0, 500) mustBe true
         server.fromClient mustEqual List("add cat 0 500 5\r\nhello\r\n")
+      }
+
+      "which returns NOT_STORED" in {
+        server = new FakeMemcacheConnection(Receive(24) :: Send("NOT_STORED\r\n".getBytes) :: Nil)
+        server.start
+
+        conn = new MemcacheConnection("localhost", server.port, 1)
+        conn.pool = pool
+        conn.add("cat", "hello".getBytes, 0, 500) mustBe false
+        server.fromClient mustEqual List("add cat 0 500 5\r\nhello\r\n")
+      }
+    }
+
+    // impl is identical to "set"
+    "replace" in {
+      "a single value" in {
+        server = new FakeMemcacheConnection(Receive(28) :: Send("STORED\r\n".getBytes) :: Nil)
+        server.start
+
+        conn = new MemcacheConnection("localhost", server.port, 1)
+        conn.pool = pool
+        conn.replace("cat", "hello".getBytes, 0, 500) mustBe true
+        server.fromClient mustEqual List("replace cat 0 500 5\r\nhello\r\n")
+      }
+
+      "which returns NOT_STORED" in {
+        server = new FakeMemcacheConnection(Receive(28) :: Send("NOT_STORED\r\n".getBytes) :: Nil)
+        server.start
+
+        conn = new MemcacheConnection("localhost", server.port, 1)
+        conn.pool = pool
+        conn.replace("cat", "hello".getBytes, 0, 500) mustBe false
+        server.fromClient mustEqual List("replace cat 0 500 5\r\nhello\r\n")
       }
     }
 
