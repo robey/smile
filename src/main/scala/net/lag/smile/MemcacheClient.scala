@@ -321,6 +321,17 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   @throws(classOf[MemcacheServerException])
   def replace[A](key: String, value: A, codec: MemcacheCodec[A]): Unit = replace(key, value, 0, 0, codec)
 
+  /**
+   * If this key has a value, append the given byte array to it.
+   *
+   * @return true if the item was appended; false if there was no data at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def appendData(key: String, value: Array[Byte]): Boolean = {
+    val (node, rkey) = nodeForKey(key)
+    node.append(rkey, value, 0, 0)
+  }
+
 
   private def nodeForKey(key: String): (MemcacheConnection, String) = {
     val realKey = namespace match {
