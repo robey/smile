@@ -332,6 +332,17 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     node.append(rkey, value, 0, 0)
   }
 
+  /**
+   * If this key has a value, append the the given data to it, using the default codec.
+   *
+   * @return true if the item was replaced; false if there was no data at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def append(key: String, value: T): Boolecan = {
+    replaceData(key, codec.encode(value), flags, expiry)
+  }
+
+
 
   private def nodeForKey(key: String): (MemcacheConnection, String) = {
     val realKey = namespace match {
