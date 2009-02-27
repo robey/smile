@@ -29,10 +29,11 @@ class ServerPool(trace: Boolean) {
   private var DEFAULT_CONNECT_TIMEOUT = 250
   var retryDelay = 30000
   var readTimeout = 2000
+  var connectTimeout = DEFAULT_CONNECT_TIMEOUT
 
   // note: this will create one thread per ServerPool
   var connector = new NioSocketConnector(new NioProcessor(threadPool))
-  connector.setConnectTimeoutMillis(DEFAULT_CONNECT_TIMEOUT)
+  connector.setConnectTimeoutMillis(connectTimeout)
   connector.getSessionConfig.setTcpNoDelay(true)
 
   // don't always install this.
@@ -88,11 +89,15 @@ object ServerPool {
     val pool = new ServerPool(attr.getBool("trace", false))
     pool.servers = (for (desc <- attr.getList("servers")) yield makeConnection(desc, pool)).toArray
     if (pool.servers.length == 0) throw new IllegalArgumentException("No servers specified")
+
     for (n <- attr.getInt("retry_delay")) {
       pool.retryDelay = n * 1000
     }
     for (n <- attr.getInt("read_timeout")) {
-      pool.readTimeout = n * 1000
+      pool.readTimeout = n
+    }
+    for (n <- attr.getInt("connect_timeout")) {
+      pool.connectTimeout = n
     }
     pool
   }

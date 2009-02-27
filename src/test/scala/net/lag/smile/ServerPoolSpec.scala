@@ -33,6 +33,7 @@ object ServerPoolSpec extends Specification {
       pool.servers(76).toString must include("cluster068:11211 weight=2")
       pool.readTimeout mustEqual 3000
       pool.retryDelay mustEqual 42000
+      pool.connectTimeout mustEqual 266
     }
   }
 }
