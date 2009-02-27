@@ -338,8 +338,8 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * @return true if the item was replaced; false if there was no data at this key
    */
   @throws(classOf[MemcacheServerException])
-  def append(key: String, value: T): Boolecan = {
-    replaceData(key, codec.encode(value), flags, expiry)
+  def append(key: String, value: T): Boolean = {
+    appendData(key, codec.encode(value))
   }
 
 
