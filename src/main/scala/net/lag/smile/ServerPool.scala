@@ -34,7 +34,6 @@ class ServerPool(trace: Boolean) {
   var connector = new NioSocketConnector(new NioProcessor(threadPool))
   connector.setConnectTimeoutMillis(DEFAULT_CONNECT_TIMEOUT)
   connector.getSessionConfig.setTcpNoDelay(true)
-  connector.getSessionConfig.setUseReadOperation(true)
 
   // don't always install this.
   if (trace) {
