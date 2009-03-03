@@ -90,13 +90,13 @@ object ServerPool {
     pool.servers = (for (desc <- attr.getList("servers")) yield makeConnection(desc, pool)).toArray
     if (pool.servers.length == 0) throw new IllegalArgumentException("No servers specified")
 
-    for (n <- attr.getInt("retry_delay")) {
+    for (n <- attr.getInt("retry_delay_sec")) {
       pool.retryDelay = n * 1000
     }
-    for (n <- attr.getInt("read_timeout")) {
+    for (n <- attr.getInt("read_timeout_msec")) {
       pool.readTimeout = n
     }
-    for (n <- attr.getInt("connect_timeout")) {
+    for (n <- attr.getInt("connect_timeout_msec")) {
       pool.connectTimeout = n
     }
     pool
