@@ -42,7 +42,7 @@ class ServerPool(trace: Boolean) {
   }
 
   connector.getFilterChain.addLast("codec", MemcacheClientDecoder.filter)
-  connector.setHandler(new IoHandlerActorAdapter((session: IoSession) => null))
+  connector.setHandler(new IoHandlerActorAdapter(session => null))
 
   def shutdown() = {
     for (conn <- servers) {

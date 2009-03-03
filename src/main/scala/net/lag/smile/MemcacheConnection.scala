@@ -143,6 +143,8 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
     } else {
       session = Some(future.getSession)
       IoHandlerActorAdapter.setActorFor(session.get, serverActor)
+      IoHandlerActorAdapter.filter(session.get) -= MinaMessage.SessionOpened
+      IoHandlerActorAdapter.filter(session.get) -= classOf[MinaMessage.MessageSent]
     }
   }
 
@@ -214,10 +216,8 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           }
 
         // non-interesting (unsolicited) mina messages:
-        case MinaMessage.SessionOpened =>
         case MinaMessage.MessageReceived(message) =>
           log.error("unsolicited response from server %s: %s", this, message)
-        case MinaMessage.MessageSent(message) =>
         case MinaMessage.ExceptionCaught(cause) =>
           log.error(cause, "unsolicited exception in actor for %s", this)
           disconnect
