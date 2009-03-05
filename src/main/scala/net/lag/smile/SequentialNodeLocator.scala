@@ -52,7 +52,6 @@ class SequentialNodeLocator(hasher: KeyHasher) extends NodeLocator {
     this.synchronized {
       current += 1
       if (current >= count) current = 0
-      println("findNode " + continuum(current).port)
       continuum(current)
     }
   }

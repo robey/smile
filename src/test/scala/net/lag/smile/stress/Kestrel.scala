@@ -16,8 +16,8 @@ import scala.collection.mutable.ListBuffer
 
 case class ReadRow(timestampMs:Long, value: String)
 case class WrittenRow(timestampMs: Long, value: String)
-case class InspectorFinished
-case class ReaderFinished
+case class InspectorFinished()
+case class ReaderFinished()
 case class ExtraneousMessage(id: Int)
 
 class KestrelTest extends StressTest {

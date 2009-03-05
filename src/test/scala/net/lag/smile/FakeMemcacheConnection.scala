@@ -11,7 +11,7 @@ import java.util.concurrent.{CountDownLatch, TimeUnit}
 import scala.collection.mutable
 
 
-abstract case class Task
+abstract case class Task()
 case class Receive(count: Int) extends Task
 case class Send(data: Array[Byte]) extends Task
 case class Sleep(ms: Int) extends Task
