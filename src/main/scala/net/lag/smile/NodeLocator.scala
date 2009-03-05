@@ -37,7 +37,7 @@ object NodeLocator {
   register("default", "crc32-itu") { h => new RoundRobinNodeLocator(h) }
   register("round-robin", "crc32-itu") { h => new RoundRobinNodeLocator(h) }
   register("ketama", "ketama") { h => new KetamaNodeLocator(h) }
-  register("sequential", "") { h => new SequentialNodeLocator(h) }
+  register("sequential", "crc32-itu") { h => new SequentialNodeLocator(h) }
 
 
   /**
