@@ -25,10 +25,10 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
 
   private val log = Logger.get
 
-  @volatile protected var session: Option[IoSession] = None
+  @volatile protected[smile] var session: Option[IoSession] = None
 
   // if the last connection attempt failed, this contains the time we should try next:
-  @volatile protected var delaying: Option[Long] = None
+  @volatile protected[smile] var delaying: Option[Long] = None
 
 
   override def toString() = {

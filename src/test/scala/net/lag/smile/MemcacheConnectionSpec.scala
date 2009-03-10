@@ -78,6 +78,25 @@ object MemcacheConnectionSpec extends Specification {
       server.awaitConnection(500) mustBe true
     }
 
+    "mark a server as dead when it vanishes" in {
+      server = new FakeMemcacheConnection(Receive(10) :: Send("VALUE fail 0 2\r\nno\r\nEND\r\n".getBytes) ::
+        KillListenSocket :: Disconnect :: Nil)
+      server.start
+
+      conn = new MemcacheConnection("localhost", server.port, 1)
+      conn.pool = pool
+      conn.ensureConnected mustBe true
+      server.awaitConnection(500) mustBe true
+      data(conn.get("fail")) mustEqual "no"
+
+      server.awaitDisconnected(500) mustBe true
+      server.awaitConnection(1) mustBe false
+
+      conn.ensureConnected mustBe false
+      conn.delaying must beSome[Long]
+      conn.session mustEqual None
+    }
+
     "get" in {
       "a single value" in {
         server = new FakeMemcacheConnection(Receive(9) ::

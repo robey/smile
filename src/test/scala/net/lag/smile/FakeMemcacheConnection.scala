@@ -16,6 +16,7 @@ case class Receive(count: Int) extends Task
 case class Send(data: Array[Byte]) extends Task
 case class Sleep(ms: Int) extends Task
 case object Disconnect extends Task
+case object KillListenSocket extends Task
 
 
 class FakeMemcacheConnection(tasks: List[Task]) extends Runnable {
@@ -33,7 +34,7 @@ class FakeMemcacheConnection(tasks: List[Task]) extends Runnable {
   var inStream: InputStream = null
   var outStream: OutputStream = null
 
-  override def run() = {
+  override def run() = try {
     while (true) {
       getClient
 
@@ -65,9 +66,13 @@ class FakeMemcacheConnection(tasks: List[Task]) extends Runnable {
             client.close
             disconnected.countDown
             getClient
+          case KillListenSocket =>
+            socket.close
         }
       }
     }
+  } catch {
+    case e: Exception =>
   }
 
   def start = {
