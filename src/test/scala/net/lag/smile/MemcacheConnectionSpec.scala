@@ -62,6 +62,22 @@ object MemcacheConnectionSpec extends Specification {
       server.awaitConnection(500) mustBe false
     }
 
+    "attempt a reconnect if a server disconnects" in {
+      server = new FakeMemcacheConnection(Disconnect :: Send("VALUE fail 0 2\r\nno\r\nEND\r\n".getBytes) :: Nil)
+      server.start
+
+      conn = new MemcacheConnection("localhost", server.port, 1)
+      conn.pool = pool
+      conn.ensureConnected mustBe true
+      server.awaitConnection(500) mustBe true
+      server.awaitDisconnected(500) mustBe true
+      server.awaitConnection(1) mustBe false
+      data(conn.get("fail")) mustEqual "no"
+
+      conn.ensureConnected mustBe true
+      server.awaitConnection(500) mustBe true
+    }
+
     "get" in {
       "a single value" in {
         server = new FakeMemcacheConnection(Receive(9) ::

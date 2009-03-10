@@ -5,9 +5,9 @@
 
 package net.lag.smile
 
-import java.io.IOException
-import java.net.ServerSocket
-import java.util.concurrent.{CountDownLatch, TimeUnit}
+import java.io.{InputStream, IOException, OutputStream}
+import java.net.{ServerSocket, Socket}
+import java.util.concurrent.{CountDownLatch, Semaphore, TimeUnit}
 import scala.collection.mutable
 
 
@@ -15,25 +15,27 @@ abstract case class Task()
 case class Receive(count: Int) extends Task
 case class Send(data: Array[Byte]) extends Task
 case class Sleep(ms: Int) extends Task
+case object Disconnect extends Task
 
 
 class FakeMemcacheConnection(tasks: List[Task]) extends Runnable {
   val socket = new ServerSocket(0, 100)
   val port = socket.getLocalPort
 
-  val gotConnection = new CountDownLatch(1)
+  val gotConnection = new Semaphore(0)
+  val disconnected = new CountDownLatch(1)
   val thread = new Thread(this)
   thread.setDaemon(true)
 
   val dataRead = new mutable.ListBuffer[Array[Byte]]
 
+  var client: Socket = null
+  var inStream: InputStream = null
+  var outStream: OutputStream = null
 
   override def run() = {
     while (true) {
-      val client = socket.accept
-      val inStream = client.getInputStream
-      val outStream = client.getOutputStream
-      gotConnection.countDown
+      getClient
 
       for (t <- tasks) {
         t match {
@@ -56,6 +58,13 @@ class FakeMemcacheConnection(tasks: List[Task]) extends Runnable {
             } catch {
               case x: InterruptedException =>
             }
+          case Disconnect =>
+            while (gotConnection.availablePermits > 0) {
+              Thread.sleep(50)
+            }
+            client.close
+            disconnected.countDown
+            getClient
         }
       }
     }
@@ -69,8 +78,19 @@ class FakeMemcacheConnection(tasks: List[Task]) extends Runnable {
     thread.interrupt
   }
 
+  def getClient = {
+    client = socket.accept
+    inStream = client.getInputStream
+    outStream = client.getOutputStream
+    gotConnection.release
+  }
+
   def awaitConnection(msec: Int) = {
-    gotConnection.await(msec, TimeUnit.MILLISECONDS)
+    gotConnection.tryAcquire(msec, TimeUnit.MILLISECONDS)
+  }
+
+  def awaitDisconnected(msec: Int) = {
+    disconnected.await(msec, TimeUnit.MILLISECONDS)
   }
 
   def fromClient(): List[String] = {
