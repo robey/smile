@@ -78,7 +78,7 @@ object MemcacheConnectionSpec extends Specification {
       server.awaitConnection(500) mustBe true
     }
 
-    "mark a server as dead when it vanishes" in {
+    "mark a server as dead when it vanishes, and try again after a delay" in {
       server = new FakeMemcacheConnection(Receive(10) :: Send("VALUE fail 0 2\r\nno\r\nEND\r\n".getBytes) ::
         KillListenSocket :: Disconnect :: Nil)
       server.start
@@ -95,6 +95,15 @@ object MemcacheConnectionSpec extends Specification {
       conn.ensureConnected mustBe false
       conn.delaying must beSome[Long]
       conn.session mustEqual None
+      server.stop
+
+      // now verify that the server comes back.
+      Time.advance(pool.retryDelay + 1)
+      server = new FakeMemcacheConnection(Receive(10) :: Send("VALUE fail 0 3\r\nyes\r\nEND\r\n".getBytes) :: Nil, server.port)
+      server.start
+      conn.ensureConnected mustBe true
+      server.awaitConnection(500) mustBe true
+      data(conn.get("fail")) mustEqual "yes"
     }
 
     "get" in {
