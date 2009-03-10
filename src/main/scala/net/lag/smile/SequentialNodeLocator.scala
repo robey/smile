@@ -33,7 +33,7 @@ class SequentialNodeLocator(hasher: KeyHasher) extends NodeLocator {
       }
     }
 
-    val rand = new Random(System.currentTimeMillis)
+    val rand = new Random(Time.now)
     val randomized = new mutable.ListBuffer[MemcacheConnection]
     while (fanout.size > 0) {
       val idx = rand.nextInt(fanout.size)

@@ -37,8 +37,8 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         delaying match {
           case None => "not connected"
           case Some(d) =>
-            if (d > System.currentTimeMillis) {
-              "waiting %d sec to retry".format((System.currentTimeMillis - d + 999) / 1000)
+            if (d > Time.now) {
+              "waiting %d sec to retry".format((Time.now - d + 999) / 1000)
             } else {
               "ready to retry"
             }
@@ -123,7 +123,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   //  ----------  implementation
 
   private def connect(): Unit = {
-    if (delaying.isDefined && (System.currentTimeMillis < delaying.get)) {
+    if (delaying.isDefined && (Time.now < delaying.get)) {
       // not yet.
       return
     }
@@ -138,7 +138,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       } else {
         log.warning("Failed to connect to memcache server %s:%d: no exception", hostname, port)
       }
-      delaying = Some(System.currentTimeMillis + pool.retryDelay)
+      delaying = Some(Time.now + pool.retryDelay)
       session = None
     } else {
       session = Some(future.getSession)

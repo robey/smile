@@ -10,7 +10,6 @@ import org.specs.runner.SpecsFileRunner
 
 
 object TestRunner extends SpecsFileRunner("src/test/scala/**/*.scala", ".*") {
-  Logger.clearHandlers
   if (System.getProperty("debugtrace") == null) {
     Logger.get("").setLevel(Logger.FATAL)
   } else {
