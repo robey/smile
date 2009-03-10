@@ -19,9 +19,11 @@ case object Disconnect extends Task
 case object KillListenSocket extends Task
 
 
-class FakeMemcacheConnection(tasks: List[Task]) extends Runnable {
-  val socket = new ServerSocket(0, 100)
-  val port = socket.getLocalPort
+class FakeMemcacheConnection(tasks: List[Task], var port: Int) extends Runnable {
+  def this(tasks: List[Task]) = this(tasks, 0)
+
+  val socket = new ServerSocket(port, 100)
+  port = socket.getLocalPort
 
   val gotConnection = new Semaphore(0)
   val disconnected = new CountDownLatch(1)
