@@ -50,9 +50,9 @@ class SequentialNodeLocator(hasher: KeyHasher) extends NodeLocator {
    */
   def findNode(key: Array[Byte]): MemcacheConnection = {
     this.synchronized {
-      current += 1
-      if (current >= count) current = 0
-      continuum(current)
+      val rv = continuum(current)
+      current = (current + 1) % count
+      rv
     }
   }
 
