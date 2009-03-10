@@ -3,7 +3,7 @@ SMILE
 =====
 
 Smile is a memcache library for scala which is intended to be fast and highly
-concurrent. It is open-sourced under the ISC license.
+concurrent. It is open-sourced under the Apache 2 license.
 
 All the standard key hashing functions are supported (CRC-ITU, FNV, and
 Ketama). Support for round-robin ("default") and Ketama key distributions is
