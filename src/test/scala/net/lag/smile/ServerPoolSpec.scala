@@ -5,7 +5,7 @@
 
 package net.lag.smile
 
-import net.lag.configgy.Configgy
+import net.lag.configgy.Config
 import org.specs._
 
 
@@ -24,8 +24,8 @@ object ServerPoolSpec extends Specification {
 
     "read a config file" in {
       ClassLoader.getSystemClassLoader.getResourceAsStream("ketama_results").read()
-      Configgy.configureFromResource("test1.conf")
-      val pool = ServerPool.fromConfig(Configgy.config.getConfigMap("memcache").get)
+      val config = Config.fromResource("test1.conf")
+      val pool = ServerPool.fromConfig(config.configMap("memcache"))
       pool.servers.size mustEqual 77
       pool.servers(0).toString must include("daemon001:11211 weight=1")
       pool.servers(1).toString must include("daemon002:11211 weight=1")
