@@ -227,6 +227,8 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
             s.getConfig.setReaderIdleTime(0)
           }
         case MinaMessage.SessionClosed =>
+          log.error("disconnected from server for %s", this)
+          disconnect
       }
     }
   }
