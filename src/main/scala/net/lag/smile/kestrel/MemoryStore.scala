@@ -21,9 +21,9 @@ import scala.collection.mutable
 
 
 /**
- * Kestrel implementation that just reads from and writes to in-memory queues.
+ * MessageStare implementation that just reads from and writes to in-memory queues.
  */
-class MockKestrelClient extends KestrelClientInterface {
+class MemoryStore extends MessageStore {
   var queues = new mutable.HashMap[String, mutable.Queue[Array[Byte]]]
 
   def pollData(key: String): Option[Array[Byte]] = synchronized {

@@ -17,27 +17,24 @@
 
 package net.lag.smile.kestrel
 
-import net.lag.configgy.{Config, Configgy, ConfigMap}
+import net.lag.configgy.ConfigMap
 import net.lag.logging.Logger
 
 
 /**
  * Kestrel cluster, configured by the config file.
  */
-class KestrelClient {
+class KestrelClient(messageStore: MessageStore) {
   val log = Logger.get
   @volatile var stopFlag = false
 
-
   /**
-   * Underlying kestrel client implementation, which may be replaced during unit tests.
+   * Underlying message store implementation, which may be replaced during unit tests.
    */
-  var impl: KestrelClientInterface = _
+  var impl: MessageStore = messageStore
 
-  def this(impl: KestrelClientInterface) = {
-    this()
-    this.impl = impl
-  }
+
+  def this(config: ConfigMap) = this(new MemcacheStore(config))
 
 
   /**
@@ -159,7 +156,7 @@ class KestrelClient {
   /**
    * Reset the kestrel client to a known "fresh" state, for unit tests.
    */
-  def reset(impl: KestrelClientInterface) = {
+  def reset(impl: MessageStore) = {
     stopFlag = false
     this.impl = impl
   }

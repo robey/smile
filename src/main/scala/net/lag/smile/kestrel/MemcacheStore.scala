@@ -17,19 +17,18 @@
 
 package net.lag.smile.kestrel
 
-import net.lag.configgy.Config
+import net.lag.configgy.ConfigMap
 import net.lag.smile.MemcacheClient
 
 
 /*
- * KestrelClientInterface implementation that uses smile. This is the default.
+ * MessageStore implementation that uses smile to speak memcache protocol. This is the default.
  */
-class SmileKestrelClient(config: Config) extends KestrelClientInterface {
+class MemcacheStore(config: ConfigMap) extends MessageStore {
   var client = {
     if (config.getString("distribution").isEmpty) {
       config.setString("distribution", "sequential")
     }
-    // FIXME: Due to Configgy bug, must refetch from Configgy to get locally set values.
     MemcacheClient.create(config)
   }
 

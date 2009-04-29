@@ -19,10 +19,10 @@ package net.lag.smile.kestrel
 
 
 /**
- * Interface for a low-level kestrel client implementation, used to let tests stub out the
- * actual network traffic.
+ * Interface for a low-level message store, implemented by MemcacheStore for kestrel, or
+ * MemoryStore for an in-memory test fixture.
  */
-trait KestrelClientInterface {
+trait MessageStore {
   /**
    * Makes an attempt to fetch an item off a queue, and returns immediately.
    */

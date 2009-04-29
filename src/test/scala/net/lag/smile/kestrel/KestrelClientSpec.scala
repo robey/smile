@@ -18,11 +18,10 @@
 package net.lag.smile.kestrel
 
 import java.util.concurrent.CountDownLatch
-//import com.twitter.commons.testing.TestHelper
 import org.specs._
 
 
-object KestrelSpec extends Specification {//with TestHelper {
+object KestrelSpec extends Specification {
 
   def duration(f: => Unit): Int = {
     val startTime = System.currentTimeMillis
@@ -32,12 +31,12 @@ object KestrelSpec extends Specification {//with TestHelper {
 
 
   "KestrelClient" should {
-    var mockClient: MockKestrelClient = null
+    var store: MemoryStore = null
     var client: KestrelClient = null
 
     doBefore {
-      mockClient = new MockKestrelClient
-      client = new KestrelClient(mockClient)
+      store = new MemoryStore
+      client = new KestrelClient(store)
     }
 
 
@@ -45,7 +44,7 @@ object KestrelSpec extends Specification {//with TestHelper {
       client.put("work", "apple")
       client.put("work", "rabbit")
       client.put("leisure", "beartrap")
-      mockClient.toString mustEqual "[leisure=List(beartrap), work=List(apple, rabbit)]"
+      store.toString mustEqual "[leisure=List(beartrap), work=List(apple, rabbit)]"
     }
 
     "get" in {
@@ -154,7 +153,7 @@ object KestrelSpec extends Specification {//with TestHelper {
           client.get("fake")
         }
       }.start
-      duration { mockClient.waitForEmpty("fake", 1000) } must be_<(1000)
+      duration { store.waitForEmpty("fake", 1000) } must be_<(1000)
     }
 
     "signal an unused empty queue immediately for other unit tests" in {
@@ -163,7 +162,7 @@ object KestrelSpec extends Specification {//with TestHelper {
           client.get("fake")
         }
       }.start
-      duration { mockClient.waitForEmpty("fake", 1000) } must be_<(1000)
+      duration { store.waitForEmpty("fake", 1000) } must be_<(1000)
     }
   }
 }
