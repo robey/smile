@@ -18,6 +18,7 @@
 package net.lag.smile.kestrel
 
 import java.util.concurrent.CountDownLatch
+import net.lag.configgy.Config
 import org.specs._
 
 
@@ -39,6 +40,13 @@ object KestrelSpec extends Specification {
       client = new KestrelClient(store)
     }
 
+
+    "configure a mock" in {
+      val client1 = new KestrelClient(Config.fromMap(Map("mock" -> "true")))
+      val client2 = new KestrelClient(Config.fromMap(Map("servers" -> "localhost")))
+      client1.messageStore.getClass.toString.contains("Memory") mustBe true
+      client2.messageStore.getClass.toString.contains("Memory") mustBe false
+    }
 
     "set" in  {
       client.put("work", "apple")

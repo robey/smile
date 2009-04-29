@@ -24,7 +24,7 @@ import net.lag.logging.Logger
 /**
  * Kestrel cluster, configured by the config file.
  */
-class KestrelClient(messageStore: MessageStore) {
+class KestrelClient(val messageStore: MessageStore) {
   val log = Logger.get
   @volatile var stopFlag = false
 
@@ -34,7 +34,7 @@ class KestrelClient(messageStore: MessageStore) {
   var impl: MessageStore = messageStore
 
 
-  def this(config: ConfigMap) = this(new MemcacheStore(config))
+  def this(config: ConfigMap) = this(if (config.getBool("mock", false)) new MemoryStore else new MemcacheStore(config))
 
 
   /**
