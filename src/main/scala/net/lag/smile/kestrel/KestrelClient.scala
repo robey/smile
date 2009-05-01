@@ -145,8 +145,7 @@ class KestrelClient(val messageStore: MessageStore) {
   }
 
   /**
-   * Shutdown the client, prematurely terminating any present and future `get`
-   * requests.
+   * Shutdown the client, prematurely terminating any present and future `get` requests.
    */
   def shutdown() = {
     stopFlag = true
@@ -159,5 +158,20 @@ class KestrelClient(val messageStore: MessageStore) {
   def reset(impl: MessageStore) = {
     stopFlag = false
     this.impl = impl
+  }
+
+  /**
+   * Pause the client, prematurely terminating any present and future `get` requests. It may be
+   * resumed later with `resume`. This has no effect on `put` requests.
+   */
+  def pause() = {
+    stopFlag = true
+  }
+
+  /**
+   * Resume the client, allowing `get` requests.
+   */
+  def resume() = {
+    stopFlag = false
   }
 }
