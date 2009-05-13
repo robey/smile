@@ -266,8 +266,10 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         }
       case MinaMessage.SessionIdle(status) =>
         log.error("timeout for %s", this)
-        disconnect
-        sender ! Timeout
+        if (session != None) {
+          disconnect
+          sender ! Timeout
+        }
       case MinaMessage.SessionClosed =>
         log.error("disconnected from server for %s", this)
         disconnect

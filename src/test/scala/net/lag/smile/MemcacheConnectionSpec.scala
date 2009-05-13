@@ -184,7 +184,7 @@ object MemcacheConnectionSpec extends Specification {
 
         conn = new MemcacheConnection("localhost", server.port, 1)
         conn.pool = pool
-        data(conn.get("cat")) must throwA(new MemcacheServerException(""))
+        data(conn.get("cat")) must throwA[MemcacheServerException]
       }
     }
 
@@ -205,7 +205,7 @@ object MemcacheConnectionSpec extends Specification {
 
         conn = new MemcacheConnection("localhost", server.port, 1)
         conn.pool = pool
-        conn.set("cat", "hello".getBytes, 0, 500) must throwA(new MemcacheServerException(""))
+        conn.set("cat", "hello".getBytes, 0, 500) must throwA[MemcacheServerException]
         server.fromClient mustEqual List("set cat 0 500 5\r\nhello\r\n")
       }
     }
