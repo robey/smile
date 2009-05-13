@@ -145,6 +145,19 @@ class KestrelClient(val messageStore: MessageStore) {
   }
 
   /**
+   */
+  def queueIterator[T](key: String)(unpacker: String => T) = new Iterator[T] {
+    var nextItem: Option[String] = None
+
+    def hasNext = {
+      nextItem = get(key)
+      nextItem != None
+    }
+
+    def next() = nextItem.map(unpacker).get
+  }
+
+  /**
    * Shutdown the client, prematurely terminating any present and future `get` requests.
    */
   def shutdown() = {

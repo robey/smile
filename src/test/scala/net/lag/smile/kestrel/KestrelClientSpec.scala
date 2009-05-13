@@ -172,5 +172,25 @@ object KestrelSpec extends Specification {
       }.start
       duration { store.waitForEmpty("fake", 1000) } must be_<(1000)
     }
+
+    "iterate a queue" in {
+      val trigger = new CountDownLatch(1)
+      new Thread() {
+        override def run() = {
+          client.put("things", "500")
+          client.put("things", "23")
+          trigger.await
+          client.pause
+        }
+      }.start
+      var sum = 0
+      for (count <- client.queueIterator("things") { item => item.toInt }) {
+        sum += count
+        if (count == 23) {
+          trigger.countDown
+        }
+      }
+      sum mustEqual 523
+    }
   }
 }
