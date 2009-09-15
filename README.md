@@ -28,7 +28,7 @@ scala actors, with one actor for each memcache server connection. It acts like
 a thread-pool but ensures that each server's traffic is handled sequentially,
 with very simple code.
 
-![Structure](master/docs/smile.png?raw=1)
+![Structure](http://github.com/robey/smile/blob/master/docs/smile.png?raw=1)
 
 
 Performance
