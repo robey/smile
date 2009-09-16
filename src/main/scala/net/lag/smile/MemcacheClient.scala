@@ -354,6 +354,11 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     appendData(key, codec.encode(value))
   }
 
+  def serverForKey(key: String): String = {
+    val (node, rkey) = nodeForKey(key)
+    "%s:%d:%d".format(node.hostname, node.port, node.weight)
+  }
+
 
 
   private def nodeForKey(key: String): (MemcacheConnection, String) = {
