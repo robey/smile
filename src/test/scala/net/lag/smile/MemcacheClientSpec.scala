@@ -17,9 +17,9 @@
 
 package net.lag.smile
 
-import org.specs._
-import scala.collection.mutable
-import java.util.concurrent.CountDownLatch
+import _root_.org.specs._
+import _root_.scala.collection.mutable
+import _root_.java.util.concurrent.CountDownLatch
 
 
 object MemcacheClientSpec extends Specification {

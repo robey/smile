@@ -17,10 +17,10 @@
 
 package net.lag.smile
 
-import net.lag.configgy.Configgy
-import org.specs._
-import scala.collection.mutable
-import java.io.{BufferedReader, InputStreamReader}
+import _root_.net.lag.configgy.Configgy
+import _root_.org.specs._
+import _root_.scala.collection.mutable
+import _root_.java.io.{BufferedReader, InputStreamReader}
 
 
 object KetamaNodeLocatorSpec extends Specification {

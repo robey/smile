@@ -17,10 +17,10 @@
 
 package net.lag.smile.stress
 
-import net.lag.configgy.Configgy
-import net.lag.extensions._
-import net.lag.logging.{Level, Logger}
-import java.util.Random
+import _root_.net.lag.configgy.Configgy
+import _root_.net.lag.extensions._
+import _root_.net.lag.logging.{Level, Logger}
+import _root_.java.util.Random
 
 
 trait StressTest {

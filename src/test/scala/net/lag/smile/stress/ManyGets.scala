@@ -17,12 +17,12 @@
 
 package net.lag.smile.stress
 
-import java.util.Random
-import java.util.concurrent.CountDownLatch
-import net.lag.configgy.Configgy
-import net.lag.extensions._
-import net.lag.logging.{Level, Logger}
-import net.lag.smile.MemcacheClient
+import _root_.java.util.Random
+import _root_.java.util.concurrent.CountDownLatch
+import _root_.net.lag.configgy.Configgy
+import _root_.net.lag.extensions._
+import _root_.net.lag.logging.{Level, Logger}
+import _root_.net.lag.smile.MemcacheClient
 
 
 class ManyGetsTest extends StressTest {

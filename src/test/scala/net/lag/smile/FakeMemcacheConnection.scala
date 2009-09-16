@@ -17,10 +17,10 @@
 
 package net.lag.smile
 
-import java.io.{InputStream, IOException, OutputStream}
-import java.net.{ServerSocket, Socket}
-import java.util.concurrent.{CountDownLatch, Semaphore, TimeUnit}
-import scala.collection.mutable
+import _root_.java.io.{InputStream, IOException, OutputStream}
+import _root_.java.net.{ServerSocket, Socket}
+import _root_.java.util.concurrent.{CountDownLatch, Semaphore, TimeUnit}
+import _root_.scala.collection.mutable
 
 
 abstract case class Task()

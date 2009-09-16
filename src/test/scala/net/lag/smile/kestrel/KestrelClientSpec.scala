@@ -17,9 +17,9 @@
 
 package net.lag.smile.kestrel
 
-import java.util.concurrent.CountDownLatch
-import net.lag.configgy.Config
-import org.specs._
+import _root_.java.util.concurrent.CountDownLatch
+import _root_.net.lag.configgy.Config
+import _root_.org.specs._
 
 
 object KestrelSpec extends Specification {

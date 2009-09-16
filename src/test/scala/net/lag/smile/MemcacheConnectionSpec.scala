@@ -17,12 +17,12 @@
 
 package net.lag.smile
 
-import net.lag.naggati.Steps._
-import java.nio.ByteOrder
-import org.apache.mina.core.buffer.IoBuffer
-import org.apache.mina.core.session.{AbstractIoSession, DummySession, IoSession}
-import org.apache.mina.filter.codec._
-import org.specs._
+import _root_.net.lag.naggati.Steps._
+import _root_.java.nio.ByteOrder
+import _root_.org.apache.mina.core.buffer.IoBuffer
+import _root_.org.apache.mina.core.session.{AbstractIoSession, DummySession, IoSession}
+import _root_.org.apache.mina.filter.codec._
+import _root_.org.specs._
 
 
 object MemcacheConnectionSpec extends Specification {

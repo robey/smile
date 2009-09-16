@@ -17,14 +17,14 @@
 
 package net.lag.smile.stress
 
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.{CountDownLatch, TimeUnit}
-import net.lag.configgy.{Configgy, Config}
-import net.lag.extensions._
-import net.lag.logging.{Level, Logger}
-import net.lag.smile.MemcacheClient
-import scala.actors._
-import scala.collection.mutable.ListBuffer
+import _root_.java.util.concurrent.atomic.AtomicInteger
+import _root_.java.util.concurrent.{CountDownLatch, TimeUnit}
+import _root_.net.lag.configgy.{Configgy, Config}
+import _root_.net.lag.extensions._
+import _root_.net.lag.logging.{Level, Logger}
+import _root_.net.lag.smile.MemcacheClient
+import _root_.scala.actors._
+import _root_.scala.collection.mutable.ListBuffer
 
 case class ReadRow(timestampMs:Long, value: String)
 case class WrittenRow(timestampMs: Long, value: String)
