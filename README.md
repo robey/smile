@@ -65,6 +65,22 @@ To get/set UTF-8 strings using a single-node memcache cluster on localhost:
     cache.get("name")
 
 
+Configuration
+-------------
+
+Configuration can be done with a configgy block, like so:
+
+    memcache {
+      distribution = "ketama"
+      hash = "fnv1a-64"
+      namespace = "widgets"
+      servers = [ "memcache1:11211", "memcache2:11211", "memcache3:11211" ]
+    }
+
+The name "memcache" is arbitrary -- use whatever name you want, and pass the
+nested block into `MemcacheClient.create`.
+
+
 TO-DO
 -----
 

@@ -398,9 +398,9 @@ object MemcacheClient {
   /**
    * Create a new MemcacheClient from a configgy block. The memcache cluster
    * distribution and hash function are specified by strings
-   * "<code>distribution</code>" and "<code>hash</code>". An optional namespace
-   * may be specified with "<code>namespace</code>". The server list must be
-   * in a string list called "<code>servers</code>".
+   * "`distribution`" and "`hash`". An optional namespace
+   * may be specified with "`namespace`". The server list must be
+   * in a string list called "`servers`".
    */
   def create(attr: ConfigMap) = {
     val pool = ServerPool.fromConfig(attr)
