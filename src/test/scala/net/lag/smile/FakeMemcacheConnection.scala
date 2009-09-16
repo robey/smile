@@ -39,7 +39,7 @@ class FakeMemcacheConnection(tasks: List[Task], var port: Int) extends Runnable 
 
   val gotConnection = new Semaphore(0)
   val disconnected = new CountDownLatch(1)
-  val thread = new Thread(this)
+  val thread = new Thread(this, "FakeMemcache")
   thread.setDaemon(true)
 
   val dataRead = new mutable.ListBuffer[Array[Byte]]
