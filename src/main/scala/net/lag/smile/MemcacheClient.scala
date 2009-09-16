@@ -359,7 +359,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   private def nodeForKey(key: String): (MemcacheConnection, String) = {
     val realKey = namespace match {
       case None => key
-      case Some(prefix) => prefix + ":" + key
+      case Some(prefix) => prefix + key
     }
     if (realKey.length > MAX_KEY_SIZE) {
       throw new KeyTooLongException

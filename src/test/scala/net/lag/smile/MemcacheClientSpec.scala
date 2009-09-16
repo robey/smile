@@ -154,7 +154,7 @@ object MemcacheClientSpec extends Specification {
         Receive(17) :: Send(("VALUE a:a 0 5\r\napple\r\nVALUE a:b 0 5\r\n" +
           "beach\r\nVALUE a:c 0 5\r\nconch\r\nEND\r\n").getBytes) :: Nil
         ))
-      client.namespace = Some("a")
+      client.namespace = Some("a:")
       client.get(Array("a", "b", "c")) mustEqual Map("a" -> "apple", "b" -> "beach", "c" -> "conch")
       for (s <- servers) {
         s.awaitConnection(500) mustBe true
