@@ -18,6 +18,7 @@
 package net.lag.smile
 
 import net.lag.configgy.ConfigMap
+import net.lag.logging.Logger
 import net.lag.extensions._
 import scala.actors.Futures
 import scala.collection.mutable
@@ -30,6 +31,8 @@ import scala.collection.mutable
  * Convenience factory methods exist on the `MemcacheClient` object.
  */
 class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
+  private val log = Logger.get
+
   private var pool: ServerPool = null
   var namespace: Option[String] = None
 
@@ -116,7 +119,9 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
       try {
         node.get(keyList.toArray)
       } catch {
-        case e: Exception => Map.empty
+        case e: Exception =>
+          log.error("Exception contacting %s: %s", node, e)
+          Map.empty
       }
     }
     Map.empty ++ (for (future <- futures; (key, value) <- future()) yield (keyMap(key), value.data))
