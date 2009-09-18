@@ -83,7 +83,7 @@ object MemcacheConnectionSpec extends Specification {
       conn.ensureConnected mustBe true
       server.awaitConnection(500) mustBe true
       server.awaitDisconnected(500) mustBe true
-      server.awaitConnection(1) mustBe false
+      server.awaitConnection(50) mustBe false
       data(conn.get("fail")) mustEqual "no"
 
       conn.ensureConnected mustBe true
