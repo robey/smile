@@ -112,9 +112,8 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
       keyMap(rkey) = key
       nodeKeys.getOrElseUpdate(node, new mutable.ListBuffer[String]) += rkey
     }
-    val futures = for ((node, keyList) <- nodeKeys.elements) yield
-      Futures.future { node.get(keyList.toArray) }
-    Map.empty ++ (for (future <- futures; (key, value) <- future().elements) yield (keyMap(key), value.data))
+    val futures = for ((node, keyList) <- nodeKeys) yield Futures.future { node.get(keyList.toArray) }
+    Map.empty ++ (for (future <- futures; (key, value) <- future()) yield (keyMap(key), value.data))
   }
 
   /**
@@ -354,6 +353,12 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     appendData(key, codec.encode(value))
   }
 
+  /**
+   * Return the server that would be used to fetch a key, using the current node locator.
+   * The server name will be in the form "hostname:port:weight".
+   *
+   * @return the name of the server used to fetch the given key
+   */
   def serverForKey(key: String): String = {
     val (node, rkey) = nodeForKey(key)
     "%s:%d:%d".format(node.hostname, node.port, node.weight)
