@@ -17,7 +17,7 @@
 
 package net.lag.smile
 
-import _root_.net.lag.configgy.Configgy
+import _root_.net.lag.configgy.Config
 import _root_.org.specs._
 import _root_.scala.collection.mutable
 import _root_.java.io.{BufferedReader, InputStreamReader}
@@ -75,8 +75,8 @@ object KetamaNodeLocatorSpec extends Specification {
 
     "be compatible with a test on a very large server list" in {
       ClassLoader.getSystemClassLoader.getResourceAsStream("ketama_results").read()
-      Configgy.configureFromResource("test1.conf")
-      val pool = ServerPool.fromConfig(Configgy.config.getConfigMap("memcache").get)
+      val config = Config.fromResource("test1.conf")
+      val pool = ServerPool.fromConfig(config.configMap("memcache"))
       val ketama = new KetamaNodeLocator
       ketama.setPool(pool)
       ketama
