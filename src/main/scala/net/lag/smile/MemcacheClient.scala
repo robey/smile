@@ -112,7 +112,13 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
       keyMap(rkey) = key
       nodeKeys.getOrElseUpdate(node, new mutable.ListBuffer[String]) += rkey
     }
-    val futures = for ((node, keyList) <- nodeKeys) yield Futures.future { node.get(keyList.toArray) }
+    val futures: Iterable[scala.actors.Future[Map[String, MemcacheResponse.Value]]] = for ((node, keyList) <- nodeKeys) yield BulletProofFuture.future {
+      try {
+        node.get(keyList.toArray)
+      } catch {
+        case e: Exception => Map.empty
+      }
+    }
     Map.empty ++ (for (future <- futures; (key, value) <- future()) yield (keyMap(key), value.data))
   }
 

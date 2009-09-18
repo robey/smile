@@ -166,5 +166,13 @@ object MemcacheClientSpec extends Specification {
       makeServers(List(Nil))
       client.get("x" * 300) must throwA(new KeyTooLongException)
     }
+
+    "recover from a multi-get if one of the servers is down" in {
+      makeServers(List(
+        Receive(7) :: Send("VALUE a 0 5\r\napple\r\nEND\r\n".getBytes) :: Nil,
+        KillListenSocket :: Nil
+      ))
+      client.get(Array("a", "b")) mustEqual Map("a" -> "apple")
+    }
   }
 }
