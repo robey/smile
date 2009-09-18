@@ -46,6 +46,7 @@ object ServerPoolSpec extends Specification {
       pool.readTimeout mustEqual 3000
       pool.retryDelay mustEqual 42000
       pool.connectTimeout mustEqual 266
+      pool.connector.getConnectTimeoutMillis() mustEqual 266
     }
   }
 }

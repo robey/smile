@@ -110,6 +110,7 @@ object ServerPool {
     }
     for (n <- attr.getInt("connect_timeout_msec")) {
       pool.connectTimeout = n
+      pool.connector.setConnectTimeoutMillis(n)
     }
     pool
   }
