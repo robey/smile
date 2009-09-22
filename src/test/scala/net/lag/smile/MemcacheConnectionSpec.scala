@@ -167,13 +167,12 @@ object MemcacheConnectionSpec extends Specification {
       }
 
       "timeout" in {
-        server = new FakeMemcacheConnection(Receive(9) :: Sleep(1200) :: Send("END\r\n".getBytes) :: Nil)
+        server = new FakeMemcacheConnection(Receive(9) :: Sleep(200) :: Send("END\r\n".getBytes) :: Nil)
         server.start
 
         conn = new MemcacheConnection("localhost", server.port, 1)
         conn.pool = pool
-        // it bothers me that this has to be a whole second. but mina doesn't support msec yet.
-        conn.pool.readTimeout = 1000
+        conn.pool.readTimeout = 100
         data(conn.get("cat")) must throwA(new MemcacheServerTimeout)
       }
 

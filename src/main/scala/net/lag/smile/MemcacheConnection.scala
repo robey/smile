@@ -19,7 +19,7 @@ package net.lag.smile
 
 import java.io.IOException
 import java.net.InetSocketAddress
-import scala.actors.{Actor, OutputChannel}
+import scala.actors.{Actor, OutputChannel, TIMEOUT}
 import scala.actors.Actor._
 import scala.collection.mutable
 import net.lag.extensions._
@@ -207,8 +207,6 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           } else {
             for (s <- session) {
               s.write(query + " " + key + "\r\n")
-              // mina currently only supports *seconds* here :(
-              s.getConfig.setReaderIdleTime(pool.readTimeout / 1000)
               waitForGetResponse(sender)
             }
           }
@@ -221,8 +219,6 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
               s.write(query + " " + key + " " + flags + " " + expiry + " " + data.length + "\r\n")
               s.write(data)
               s.write("\r\n")
-              // mina currently only supports *seconds* here :(
-              s.getConfig.setReaderIdleTime(pool.readTimeout / 1000)
               waitForStoreResponse(sender)
             }
           }
@@ -233,11 +229,6 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         case MinaMessage.ExceptionCaught(cause) =>
           log.error(cause, "unsolicited exception in actor for %s", this)
           disconnect
-        case MinaMessage.SessionIdle(status) =>
-          // probably leftover from a previous timeout.
-          for (s <- session) {
-            s.getConfig.setReaderIdleTime(0)
-          }
         case MinaMessage.SessionClosed =>
           log.error("disconnected from server for %s", this)
           disconnect
@@ -251,7 +242,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
    * handler block.
    */
   private def waitForResponse(sender: OutputChannel[Any])(handler: AnyRef => Unit) = {
-    react {
+    reactWithin(pool.readTimeout) {
       case MinaMessage.MessageReceived(message) =>
         handler(message)
       case MinaMessage.ExceptionCaught(cause) =>
@@ -264,16 +255,16 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
             log.error(cause, "exception in actor for %s", this)
             sender ! Error(cause.toString)
         }
-      case MinaMessage.SessionIdle(status) =>
+      case MinaMessage.SessionClosed =>
+        log.error("disconnected from server for %s", this)
+        disconnect
+        sender ! ConnectionFailed
+      case TIMEOUT =>
         log.error("timeout for %s", this)
         if (session != None) {
           disconnect
           sender ! Timeout
         }
-      case MinaMessage.SessionClosed =>
-        log.error("disconnected from server for %s", this)
-        disconnect
-        sender ! ConnectionFailed
     }
   }
 
