@@ -20,6 +20,7 @@ package net.lag.smile
 import _root_.net.lag.naggati.Decoder
 import _root_.net.lag.naggati.Steps._
 import _root_.org.apache.mina.core.buffer.IoBuffer
+import _root_.org.apache.mina.core.filterchain.IoFilter
 import _root_.org.apache.mina.core.session.{AbstractIoSession, DummySession, IoSession}
 import _root_.org.apache.mina.filter.codec._
 import _root_.org.specs._
@@ -45,7 +46,7 @@ object MemcacheClientDecoderSpec extends Specification {
       written.clear
       fakeSession = new DummySession
       fakeDecoderOutput = new ProtocolDecoderOutput {
-        override def flush = {}
+        override def flush(next: IoFilter.NextFilter, session: IoSession) = {}
         override def write(obj: AnyRef) = {
           written += obj.asInstanceOf[MemcacheResponse]
         }
