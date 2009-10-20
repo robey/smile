@@ -472,12 +472,13 @@ class KestrelTest extends StressTest {
 
 object Kestrel {
   def main(args: Array[String]): Unit = {
-    if (args.size != 1) {
-      println("Must specify 1 host")
+    val hostPort = System.getProperty("hostport")
+    if (hostPort == null) {
+      println("hostport property unset. -Dhostport=\"localhost:22133\"")
     } else {
       Configgy.configure("test.conf")
       val k = new KestrelTest()
-      k.setHosts(args)
+      k.setHosts(Array(hostPort))
       k.go()
     }
   }
