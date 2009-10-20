@@ -444,26 +444,33 @@ class KestrelTest extends StressTest {
     //
     // Unit-like tests
     //
+    log.debug("unit-like tests")
     suite(1, 3, 10, 0, 250, 250)
 
     //
     // Test client actor compatability.
     //
+    log.debug("pester tests")
     testPester(512)
 
     //
     // Single-Queue tests
     //
+    log.debug("single-queue tests")
     suite(1, 20000, 256, 8000, 250, 5)
 
     //
     // 3-Queue tests
     //
+    log.debug("3-queue 1 tests")
     suite(3, 10000, 256, 8000, 250, 10)
+    log.debug("3-queue 2 tests")
     suite(3, 10000, 2, 4, 250, 5)
 
     // 12-Queue tests
+    log.debug("12-queue 1 tests")
     suite(12, 5000, 2, 4, 1000, 10)
+    log.debug("12-queue list tests")
     List(2, 15, 25, 50, 75).foreach(pause => suite(12, 1000, 2, 4, pause * 10, pause))
 
     log.info("TESTS PASS")
