@@ -46,8 +46,9 @@ object NodeLocator {
 
   private val locators = new mutable.HashMap[String, (String, Factory)]
 
-  register("default", "crc32-itu") { h => new RoundRobinNodeLocator(h) }
-  register("round-robin", "crc32-itu") { h => new RoundRobinNodeLocator(h) }
+  register("default", "crc32-itu") { h => new ModuloNodeLocator(h) }
+  register("modulo", "crc32-itu") { h => new ModuloNodeLocator(h) }
+  register("round-robin", "crc32-itu") { h => new ModuloNodeLocator(h) }
   register("ketama", "ketama") { h => new KetamaNodeLocator(h) }
   register("sequential", "crc32-itu") { h => new SequentialNodeLocator(h) }
 

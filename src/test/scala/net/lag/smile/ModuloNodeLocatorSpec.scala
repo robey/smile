@@ -23,7 +23,7 @@ import _root_.scala.collection.mutable
 import _root_.java.io.{BufferedReader, InputStreamReader}
 
 
-object RoundRobinNodeLocatorSpec extends Specification {
+object ModuloNodeLocatorSpec extends Specification {
 
   def newTestLocator = {
     val servers = List(
@@ -39,7 +39,7 @@ object RoundRobinNodeLocatorSpec extends Specification {
     val pool = new ServerPool
     val connections = for (s <- servers) yield ServerPool.makeConnection(s, pool)
     pool.servers = connections.toArray
-    val locator = new RoundRobinNodeLocator
+    val locator = new ModuloNodeLocator
     locator.setPool(pool)
     locator
   }
@@ -58,13 +58,13 @@ object RoundRobinNodeLocatorSpec extends Specification {
     val pool = new ServerPool
     val connections = for (s <- servers) yield ServerPool.makeConnection(s, pool)
     pool.servers = connections.toArray
-    val locator = new RoundRobinNodeLocator
+    val locator = new ModuloNodeLocator
     locator.setPool(pool)
     locator
   }
 
 
-  "RoundRobinNodeLocator" should {
+  "ModuloNodeLocator" should {
     "find nodes" in {
       val expected = List(
         List("apple", "10.0.1.1"),

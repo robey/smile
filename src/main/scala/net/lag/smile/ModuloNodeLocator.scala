@@ -25,7 +25,7 @@ import scala.collection.mutable
  * Locate a node by taking the mod of the key's hash against the number of servers. This is
  * the default memcache node locator.
  */
-class RoundRobinNodeLocator(hasher: KeyHasher) extends NodeLocator {
+class ModuloNodeLocator(hasher: KeyHasher) extends NodeLocator {
 
   def this() = this(KeyHasher.CRC32_ITU)
 

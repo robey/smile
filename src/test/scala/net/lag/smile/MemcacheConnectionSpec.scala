@@ -46,7 +46,9 @@ object MemcacheConnectionSpec extends Specification {
 
   "MemcacheConnection" should {
     doAfter {
-      server.stop
+      if (server ne null) {
+        server.stop
+      }
       if (conn != null) {
         conn.shutdown
       }

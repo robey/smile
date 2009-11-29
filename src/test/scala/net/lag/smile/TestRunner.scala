@@ -18,14 +18,6 @@
 package net.lag.smile
 
 import net.lag.logging.Logger
-import org.specs.runner.SpecsFileRunner
+import com.twitter.xrayspecs.XraySpecsRunner
 
-
-object TestRunner extends SpecsFileRunner("src/test/scala/**/*.scala", ".*",
-  System.getProperty("system", ".*"), System.getProperty("example", ".*")) {
-  if (System.getProperty("debugtrace") == null) {
-    Logger.get("").setLevel(Logger.FATAL)
-  } else {
-    Logger.get("").setLevel(Logger.TRACE)
-  }
-}
+object TestRunner extends XraySpecsRunner
