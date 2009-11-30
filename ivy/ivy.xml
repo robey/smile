@@ -2,7 +2,7 @@
   <info
     organisation="net.lag"
     module="smile"
-    revision="0.8.10"
+    revision="0.8.11"
     e:testclass="net.lag.smile.TestRunner"
     e:buildpackage="net.lag.smile"
     e:stresstestclass="net.lag.smile.stress.Kestrel"
