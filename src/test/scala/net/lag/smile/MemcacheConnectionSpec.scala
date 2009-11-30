@@ -27,7 +27,7 @@ import _root_.org.specs._
 
 object MemcacheConnectionSpec extends Specification {
 
-  val pool = new ServerPool
+  var pool: ServerPool = null
   var server: FakeMemcacheConnection = null
   var conn: MemcacheConnection = null
 
@@ -45,6 +45,10 @@ object MemcacheConnectionSpec extends Specification {
 
 
   "MemcacheConnection" should {
+    doBefore {
+      pool = new ServerPool
+    }
+
     doAfter {
       if (server ne null) {
         server.stop
@@ -92,7 +96,7 @@ object MemcacheConnectionSpec extends Specification {
       server.awaitConnection(500) mustBe true
     }
 
-    "mark a server as dead when it vanishes, and try again after a delay" in {
+    "eject a server when it vanishes, and try again after a delay" in {
       server = new FakeMemcacheConnection(Receive(10) :: Send("VALUE fail 0 2\r\nno\r\nEND\r\n".getBytes) ::
         KillListenSocket :: Disconnect :: Nil)
       server.start
@@ -118,6 +122,21 @@ object MemcacheConnectionSpec extends Specification {
       conn.ensureConnected mustBe true
       server.awaitConnection(500) mustBe true
       data(conn.get("fail")) mustEqual "yes"
+    }
+
+    "eject a server after N consecutive failures" in {
+      pool.maxFailuresBeforeEjection = 2
+      server = new FakeMemcacheConnection(Receive(10) :: Disconnect :: Receive(10) :: Disconnect :: Nil)
+      server.start
+
+      conn = new MemcacheConnection("localhost", server.port, 1)
+      conn.pool = pool
+      conn.ensureConnected mustBe true
+      server.awaitConnection(500) mustBe true
+      conn.get("fail") must throwA[MemcacheServerException]
+      conn.isEjected must beFalse
+      conn.get("fail") must throwA[MemcacheServerException]
+      conn.isEjected must beTrue
     }
 
     "get" in {

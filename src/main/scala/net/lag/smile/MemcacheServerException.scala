@@ -28,6 +28,7 @@ class MemcacheServerException(reason: String) extends IOException(reason)
 class MemcacheServerTimeout extends MemcacheServerException("timeout")
 class MemcacheServerOffline extends MemcacheServerException("server is unreachable")
 
-class NotStoredException extends MemcacheServerException("not stored")
+class MemcacheClientError(reason: String) extends MemcacheServerException(reason)
 
-class KeyTooLongException extends MemcacheServerException("key too long")
+class NotStoredException extends MemcacheClientError("not stored")
+class KeyTooLongException extends MemcacheClientError("key too long")

@@ -17,6 +17,7 @@
 
 package net.lag.smile
 
+import scala.collection.mutable
 import net.lag.configgy.ConfigMap
 import net.lag.extensions._
 import net.lag.naggati.IoHandlerActorAdapter
@@ -38,10 +39,14 @@ class ServerPool(trace: Boolean) {
   var threadPool = Executors.newCachedThreadPool
   var servers: Array[MemcacheConnection] = Array()
 
+  // connections that were recently ejected but might come back:
+  private val watchList = new mutable.ListBuffer[MemcacheConnection]
+
   private var DEFAULT_CONNECT_TIMEOUT = 250
   var retryDelay = 30000
   var readTimeout = 2000
   var connectTimeout = DEFAULT_CONNECT_TIMEOUT
+  var maxFailuresBeforeEjection = 3
 
   // note: this will create one thread per ServerPool
   var connector = new NioSocketConnector(new NioProcessor(threadPool))
@@ -55,6 +60,26 @@ class ServerPool(trace: Boolean) {
 
   connector.getFilterChain.addLast("codec", MemcacheClientDecoder.filter)
   connector.setHandler(new IoHandlerActorAdapter(session => null))
+
+  def liveServers = {
+    servers.filter { !_.isEjected }
+  }
+
+  def shouldRecheckEjectedConnections = synchronized {
+    if (watchList.exists { !_.isEjected }) {
+      rebuildWatchList()
+      true
+    } else {
+      false
+    }
+  }
+
+  def rebuildWatchList() {
+    synchronized {
+      watchList.clear()
+      watchList ++= servers.filter { _.isEjected }
+    }
+  }
 
   def shutdown() = {
     for (conn <- servers) {

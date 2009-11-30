@@ -35,7 +35,7 @@ class ModuloNodeLocator(hasher: KeyHasher) extends NodeLocator {
   def setPool(pool: ServerPool) = {
     this.pool = pool
     val stack = new mutable.ListBuffer[MemcacheConnection]
-    for (s <- pool.servers) {
+    for (s <- pool.liveServers) {
       for (i <- 1 to s.weight) {
         stack += s
       }

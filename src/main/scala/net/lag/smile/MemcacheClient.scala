@@ -68,10 +68,11 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def getData(key: String): Option[Array[Byte]] = {
-    val (node, rkey) = nodeForKey(key)
-    node.get(rkey) match {
-      case None => None
-      case Some(v) => Some(v.data)
+    withNode(key) { (node, key) =>
+      node.get(key) match {
+        case None => None
+        case Some(v) => Some(v.data)
+      }
     }
   }
 
@@ -111,9 +112,10 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     val keyMap = new mutable.HashMap[String, String]
     val nodeKeys = new mutable.HashMap[MemcacheConnection, mutable.ListBuffer[String]]
     for (key <- keys) {
-      val (node, rkey) = nodeForKey(key)
-      keyMap(rkey) = key
-      nodeKeys.getOrElseUpdate(node, new mutable.ListBuffer[String]) += rkey
+      withNode(key) { (node, rkey) =>
+        keyMap(rkey) = key
+        nodeKeys.getOrElseUpdate(node, new mutable.ListBuffer[String]) += rkey
+      }
     }
     val futures: Iterable[scala.actors.Future[Map[String, MemcacheResponse.Value]]] = for ((node, keyList) <- nodeKeys) yield BulletProofFuture.future {
       try {
@@ -156,8 +158,9 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def setData(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit = {
-    val (node, rkey) = nodeForKey(key)
-    node.set(rkey, value, flags, expiry)
+    withNode(key) { (node, rkey) =>
+      node.set(rkey, value, flags, expiry)
+    }
   }
 
   /**
@@ -215,8 +218,9 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def addData(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean = {
-    val (node, rkey) = nodeForKey(key)
-    node.add(rkey, value, flags, expiry)
+    withNode(key) { (node, rkey) =>
+      node.add(rkey, value, flags, expiry)
+    }
   }
 
   /**
@@ -286,8 +290,9 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def replaceData(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean = {
-    val (node, rkey) = nodeForKey(key)
-    node.replace(rkey, value, flags, expiry)
+    withNode(key) { (node, rkey) =>
+      node.replace(rkey, value, flags, expiry)
+    }
   }
 
   /**
@@ -350,8 +355,9 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def appendData(key: String, value: Array[Byte]): Boolean = {
-    val (node, rkey) = nodeForKey(key)
-    node.append(rkey, value, 0, 0)
+    withNode(key) { (node, rkey) =>
+      node.append(rkey, value, 0, 0)
+    }
   }
 
   /**
@@ -371,13 +377,12 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * @return the name of the server used to fetch the given key
    */
   def serverForKey(key: String): String = {
-    val (node, rkey) = nodeForKey(key)
-    "%s:%d:%d".format(node.hostname, node.port, node.weight)
+    withNode(key) { (node, rkey) =>
+      "%s:%d:%d".format(node.hostname, node.port, node.weight)
+    }
   }
 
-
-
-  private def nodeForKey(key: String): (MemcacheConnection, String) = {
+  private def withNode[T](key: String)(f: (MemcacheConnection, String) => T): T = {
     val realKey = namespace match {
       case None => key
       case Some(prefix) => prefix + key
@@ -385,7 +390,19 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     if (realKey.length > MAX_KEY_SIZE) {
       throw new KeyTooLongException
     }
-    (locator.findNode(realKey.getBytes("utf-8")), realKey)
+    val node = locator.findNode(realKey.getBytes("utf-8"))
+
+    try {
+      f(node, realKey)
+    } catch {
+      case e: MemcacheClientError =>
+        throw e
+      case e: MemcacheServerException =>
+        if (node.isEjected) {
+          // oh dear.
+        }
+        throw e
+    }
   }
 }
 

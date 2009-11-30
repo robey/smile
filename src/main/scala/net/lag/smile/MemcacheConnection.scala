@@ -19,6 +19,7 @@ package net.lag.smile
 
 import java.io.IOException
 import java.net.InetSocketAddress
+import java.util.concurrent.atomic.AtomicInteger
 import scala.actors.{Actor, OutputChannel, TIMEOUT}
 import scala.actors.Actor._
 import scala.collection.mutable
@@ -42,6 +43,8 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   // if the last connection attempt failed, this contains the time we should try next:
   @volatile protected[smile] var delaying: Option[Long] = None
 
+  // useful for marking servers as dead at a higher level
+  var consecutiveFailures = new AtomicInteger(0)
 
   override def toString() = {
     val status = session match {
@@ -68,20 +71,35 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   @throws(classOf[MemcacheServerException])
   def get(keys: Array[String]): Map[String, MemcacheResponse.Value] = {
     serverActor !? Get("get", keys.mkString(" ")) match {
-      case Timeout => throw new MemcacheServerTimeout
-      case ConnectionFailed => throw new MemcacheServerOffline
-      case Error(description) => throw new MemcacheServerException(description)
-      case GetResponse(values) => Map.empty ++ (for (v <- values) yield (v.key, v))
+      case Timeout =>
+        registerFailure()
+        throw new MemcacheServerTimeout
+      case ConnectionFailed =>
+        registerFailure()
+        throw new MemcacheServerOffline
+      case Error(description) =>
+        registerFailure()
+        throw new MemcacheServerException(description)
+      case GetResponse(values) =>
+        clearFailures()
+        Map.empty ++ (for (v <- values) yield (v.key, v))
     }
   }
 
   @throws(classOf[MemcacheServerException])
   def get(key: String): Option[MemcacheResponse.Value] = {
     serverActor !? Get("get", key) match {
-      case Timeout => throw new MemcacheServerTimeout
-      case ConnectionFailed => throw new MemcacheServerOffline
-      case Error(description) => throw new MemcacheServerException(description)
+      case Timeout =>
+        registerFailure()
+        throw new MemcacheServerTimeout
+      case ConnectionFailed =>
+        registerFailure()
+        throw new MemcacheServerOffline
+      case Error(description) =>
+        registerFailure()
+        throw new MemcacheServerException(description)
       case GetResponse(values) =>
+        clearFailures()
         values match {
           case Nil => None
           case v :: Nil => Some(v)
@@ -95,11 +113,21 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   @throws(classOf[MemcacheServerException])
   def store(query: String, key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean = {
     serverActor !? Store(query, key, flags, expiry, value) match {
-      case Timeout => throw new MemcacheServerTimeout
-      case ConnectionFailed => throw new MemcacheServerOffline
-      case Error(description) => throw new MemcacheServerException(description)
-      case MemcacheResponse.Stored => true
-      case MemcacheResponse.NotStored => false
+      case Timeout =>
+        registerFailure()
+        throw new MemcacheServerTimeout
+      case ConnectionFailed =>
+        registerFailure()
+        throw new MemcacheServerOffline
+      case Error(description) =>
+        registerFailure()
+        throw new MemcacheServerException(description)
+      case MemcacheResponse.Stored =>
+        clearFailures()
+        true
+      case MemcacheResponse.NotStored =>
+        clearFailures()
+        false
     }
   }
 
@@ -131,11 +159,33 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
     serverActor ! Stop
   }
 
+  def isEjected = synchronized {
+    delaying.isDefined && (Time.now < delaying.get)
+  }
+
+  def eject() {
+    synchronized {
+      delaying = Some(Time.now + pool.retryDelay)
+      session = None
+    }
+  }
+
+  def clearFailures() {
+    consecutiveFailures.set(0)
+  }
+
+  def registerFailure() {
+    if (consecutiveFailures.incrementAndGet() >= pool.maxFailuresBeforeEjection) {
+      eject()
+      clearFailures()
+    }
+  }
+
 
   //  ----------  implementation
 
   private def connect(): Unit = {
-    if (delaying.isDefined && (Time.now < delaying.get)) {
+    if (isEjected) {
       // not yet.
       return
     }
@@ -150,8 +200,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       } else {
         log.warning("Failed to connect to memcache server %s:%d: no exception", hostname, port)
       }
-      delaying = Some(Time.now + pool.retryDelay)
-      session = None
+      eject()
     } else {
       session = Some(future.getSession)
       IoHandlerActorAdapter.setActorFor(session.get, serverActor)
