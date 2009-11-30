@@ -39,7 +39,7 @@ class SequentialNodeLocator(hasher: KeyHasher) extends NodeLocator {
   def setPool(pool: ServerPool) = {
     this.pool = pool
     val fanout = new mutable.ArrayBuffer[MemcacheConnection]
-    for (s <- pool.servers) {
+    for (s <- pool.liveServers) {
       for (i <- 1 to s.weight) {
         fanout += s
       }
