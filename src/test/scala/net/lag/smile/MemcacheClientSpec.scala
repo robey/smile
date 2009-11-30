@@ -17,19 +17,23 @@
 
 package net.lag.smile
 
-import _root_.org.specs._
-import _root_.scala.collection.mutable
 import _root_.java.util.concurrent.CountDownLatch
+import _root_.scala.collection.mutable
+import _root_.org.specs.Specification
+import _root_.org.specs.mock.{ClassMocker, JMocker}
 
 
-object MemcacheClientSpec extends Specification {
+object MemcacheClientSpec extends Specification with JMocker with ClassMocker {
 
   var pool: ServerPool = null
   val servers = new mutable.ListBuffer[FakeMemcacheConnection]
   var client: MemcacheClient[String] = null
+  var locator: NodeLocator = null
+  val connections = new mutable.ListBuffer[MemcacheConnection]
 
   def makeServers(seed: List[List[Task]]) = {
     // silly node locator that chooses based on the first letter of the key.
+/*
     val locator = new NodeLocator {
       var pool: ServerPool = null
 
@@ -42,8 +46,10 @@ object MemcacheClientSpec extends Specification {
         pool.servers(n)
       }
     }
+    */
 
-    val connections = new mutable.ListBuffer[MemcacheConnection]
+
+    connections.clear()
     pool = new ServerPool
     for (tasks <- seed) {
       val server = new FakeMemcacheConnection(tasks)
@@ -55,16 +61,23 @@ object MemcacheClientSpec extends Specification {
     }
     pool.servers = connections.toArray
     client = new MemcacheClient(locator, MemcacheCodec.UTF8)
+    expect { one(locator).setPool(any) }
     client.setPool(pool)
   }
 
   "MemcacheClient" should {
+
+    doBefore {
+      locator = mock[NodeLocator]
+    }
+
     doAfter {
       for (s <- servers) {
         s.stop
       }
       servers.clear()
       client.shutdown()
+      connections.clear()
     }
 
 
@@ -74,6 +87,13 @@ object MemcacheClientSpec extends Specification {
         Receive(7) :: Send("VALUE b 0 5\r\nbeach\r\nEND\r\n".getBytes) :: Nil,
         Receive(7) :: Send("VALUE c 0 5\r\nconch\r\nEND\r\n".getBytes) :: Nil
       ))
+
+      expect {
+        one(locator).findNode("a".getBytes) willReturn connections(0)
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+        one(locator).findNode("c".getBytes) willReturn connections(2)
+      }
+
       client.get("a") mustEqual Some("apple")
       client.get("b") mustEqual Some("beach")
       client.get("c") mustEqual Some("conch")
@@ -91,6 +111,12 @@ object MemcacheClientSpec extends Specification {
         Receive(7) :: Sleep(100) :: Send("VALUE b 0 5\r\nbeach\r\nEND\r\n".getBytes) :: Nil,
         Receive(7) :: Sleep(100) :: Send("VALUE c 0 5\r\nconch\r\nEND\r\n".getBytes) :: Nil
       ))
+
+      expect {
+        one(locator).findNode("a".getBytes) willReturn connections(0)
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+        one(locator).findNode("c".getBytes) willReturn connections(2)
+      }
 
       val latch = new CountDownLatch(1)
       var val1: Option[String] = None
@@ -140,6 +166,13 @@ object MemcacheClientSpec extends Specification {
         Receive(7) :: Send("VALUE b 0 5\r\nbeach\r\nEND\r\n".getBytes) :: Nil,
         Receive(7) :: Send("VALUE c 0 5\r\nconch\r\nEND\r\n".getBytes) :: Nil
       ))
+
+      expect {
+        one(locator).findNode("a".getBytes) willReturn connections(0)
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+        one(locator).findNode("c".getBytes) willReturn connections(2)
+      }
+
       client.get(Array("a", "b", "c")) mustEqual Map("a" -> "apple", "b" -> "beach", "c" -> "conch")
       for (s <- servers) {
         s.awaitConnection(500) mustBe true
@@ -155,6 +188,13 @@ object MemcacheClientSpec extends Specification {
           "beach\r\nVALUE a:c 0 5\r\nconch\r\nEND\r\n").getBytes) :: Nil
         ))
       client.namespace = Some("a:")
+
+      expect {
+        one(locator).findNode("a:a".getBytes) willReturn connections(0)
+        one(locator).findNode("a:b".getBytes) willReturn connections(0)
+        one(locator).findNode("a:c".getBytes) willReturn connections(0)
+      }
+
       client.get(Array("a", "b", "c")) mustEqual Map("a" -> "apple", "b" -> "beach", "c" -> "conch")
       for (s <- servers) {
         s.awaitConnection(500) mustBe true
@@ -172,7 +212,64 @@ object MemcacheClientSpec extends Specification {
         Receive(7) :: Send("VALUE a 0 5\r\napple\r\nEND\r\n".getBytes) :: Nil,
         KillListenSocket :: Nil
       ))
+
+      expect {
+        one(locator).findNode("a".getBytes) willReturn connections(0)
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+      }
+
       client.get(Array("a", "b")) mustEqual Map("a" -> "apple")
+    }
+
+    "eject a bad server and retry it later" in {
+      makeServers(List(
+        Receive(7) :: Send("VALUE a 0 5\r\napple\r\nEND\r\n".getBytes) :: Receive(7) :: Send("END\r\n".getBytes) :: Nil,
+        Receive(7) :: SkipAwaitConnection :: Disconnect :: Receive(7) :: SkipAwaitConnection :: Disconnect :: Receive(7) :: Send("VALUE a 0 1\r\nb\r\nEND\r\n".getBytes) :: Nil
+      ))
+      pool.maxFailuresBeforeEjection = 2
+
+      expect {
+        one(locator).findNode("a".getBytes) willReturn connections(0)
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+      }
+
+      client.get("a") mustEqual Some("apple")
+      client.get("b") must throwA[MemcacheServerException]
+      connections(1).isEjected must beFalse
+
+      expect {
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+        one(locator).setPool(any)
+      }
+
+      client.get("b") must throwA[MemcacheServerException]
+      connections(1).isEjected must beTrue
+
+      expect {
+        one(locator).findNode("b".getBytes) willReturn connections(0)
+      }
+      client.get("b") mustEqual None
+
+      Time.advance(60000)
+      connections(1).isEjected must beFalse
+
+      expect {
+        one(locator).setPool(any)
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+      }
+
+      client.get("b") mustEqual Some("b")
+
+
+/*
+      client.
+      for (s <- servers) {
+        s.awaitConnection(500) mustBe true
+      }
+      servers(0).fromClient mustEqual List("get a\r\n")
+      servers(1).fromClient mustEqual List("get b\r\n")
+      servers(2).fromClient mustEqual List("get c\r\n")
+*/
     }
   }
 }
