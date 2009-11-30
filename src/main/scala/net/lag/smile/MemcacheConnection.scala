@@ -53,7 +53,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           case None => "not connected"
           case Some(d) =>
             if (d > Time.now) {
-              "waiting %d sec to retry".format((Time.now - d + 999) / 1000)
+              "waiting %d sec to retry".format((d - Time.now + 999) / 1000)
             } else {
               "ready to retry"
             }
