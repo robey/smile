@@ -65,16 +65,18 @@ class ServerPool(trace: Boolean) {
     servers.filter { !_.isEjected }
   }
 
+  // returns true if one or more ejected connections is ready to be tried again.
   def shouldRecheckEjectedConnections = synchronized {
     if (watchList.exists { !_.isEjected }) {
-      rebuildWatchList()
+      scanForEjections()
       true
     } else {
       false
     }
   }
 
-  def rebuildWatchList() {
+  // scan the server list for ejected connections, and remember them so we can check them later.
+  def scanForEjections() {
     synchronized {
       watchList.clear()
       watchList ++= servers.filter { _.isEjected }

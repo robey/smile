@@ -390,6 +390,11 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     if (realKey.length > MAX_KEY_SIZE) {
       throw new KeyTooLongException
     }
+
+    if (pool.shouldRecheckEjectedConnections) {
+      locator.setPool(pool)
+    }
+
     val node = locator.findNode(realKey.getBytes("utf-8"))
 
     try {
@@ -400,6 +405,8 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
       case e: MemcacheServerException =>
         if (node.isEjected) {
           // oh dear.
+          pool.scanForEjections()
+          locator.setPool(pool)
         }
         throw e
     }
