@@ -112,18 +112,20 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     val keyMap = new mutable.HashMap[String, String]
     val nodeKeys = new mutable.HashMap[MemcacheConnection, mutable.ListBuffer[String]]
     for (key <- keys) {
-      withNode(key) { (node, rkey) =>
-        keyMap(rkey) = key
-        nodeKeys.getOrElseUpdate(node, new mutable.ListBuffer[String]) += rkey
-      }
+      val (node, realKey) = nodeForKey(key)
+      keyMap(realKey) = key
+      nodeKeys.getOrElseUpdate(node, new mutable.ListBuffer[String]) += realKey
     }
+
     val futures: Iterable[scala.actors.Future[Map[String, MemcacheResponse.Value]]] = for ((node, keyList) <- nodeKeys) yield BulletProofFuture.future {
-      try {
-        node.get(keyList.toArray)
-      } catch {
-        case e: Exception =>
-          log.error("Exception contacting %s: %s", node, e)
-          Map.empty
+      withNode(node) {
+        try {
+          node.get(keyList.toArray)
+        } catch {
+          case e: Exception =>
+            log.error("Exception contacting %s: %s", node, e)
+            Map.empty
+        }
       }
     }
     Map.empty ++ (for (future <- futures; (key, value) <- future()) yield (keyMap(key), value.data))
@@ -382,7 +384,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     }
   }
 
-  private def withNode[T](key: String)(f: (MemcacheConnection, String) => T): T = {
+  def nodeForKey(key: String): (MemcacheConnection, String) = {
     val realKey = namespace match {
       case None => key
       case Some(prefix) => prefix + key
@@ -390,27 +392,40 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     if (realKey.length > MAX_KEY_SIZE) {
       throw new KeyTooLongException
     }
+    (locator.findNode(realKey.getBytes("utf-8")), realKey)
+  }
 
-    if (pool.shouldRecheckEjectedConnections) {
-      log.info("Retrying ejections...")
-      locator.setPool(pool)
-    }
+  private def withNode[T](key: String)(f: (MemcacheConnection, String) => T): T = {
+    checkForUneject()
+    val (node, realKey) = nodeForKey(key)
+    withNode(node) { f(node, realKey) }
+  }
 
-    val node = locator.findNode(realKey.getBytes("utf-8"))
-
+  private def withNode[T](node: MemcacheConnection)(f: => T): T = {
     try {
-      f(node, realKey)
+      f
     } catch {
       case e: MemcacheClientError =>
         throw e
       case e: MemcacheServerException =>
         if (node.isEjected) {
           log.info("Ejecting from pool: %s", node)
-          pool.scanForEjections()
-          locator.setPool(pool)
+          checkForEject()
         }
         throw e
     }
+  }
+
+  private def checkForUneject() {
+    if (pool.shouldRecheckEjectedConnections) {
+      log.info("Retrying ejections...")
+      locator.setPool(pool)
+    }
+  }
+
+  private def checkForEject() {
+    pool.scanForEjections()
+    locator.setPool(pool)
   }
 }
 
