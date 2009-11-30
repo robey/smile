@@ -31,7 +31,7 @@ import scala.collection.mutable
  * Convenience factory methods exist on the `MemcacheClient` object.
  */
 class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
-  private val log = Logger.get
+  private val log = Logger.get(getClass.getName)
 
   private var pool: ServerPool = null
   var namespace: Option[String] = None
@@ -392,6 +392,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     }
 
     if (pool.shouldRecheckEjectedConnections) {
+      log.info("Retrying ejections...")
       locator.setPool(pool)
     }
 
@@ -404,7 +405,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
         throw e
       case e: MemcacheServerException =>
         if (node.isEjected) {
-          // oh dear.
+          log.info("Ejecting from pool: %s", node)
           pool.scanForEjections()
           locator.setPool(pool)
         }

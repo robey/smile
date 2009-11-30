@@ -32,23 +32,6 @@ object MemcacheClientSpec extends Specification with JMocker with ClassMocker {
   val connections = new mutable.ListBuffer[MemcacheConnection]
 
   def makeServers(seed: List[List[Task]]) = {
-    // silly node locator that chooses based on the first letter of the key.
-/*
-    val locator = new NodeLocator {
-      var pool: ServerPool = null
-
-      def setPool(pool: ServerPool) = {
-        this.pool = pool
-      }
-
-      def findNode(key: Array[Byte]) = {
-        val n = (key(0) - 'a'.toByte) % pool.servers.size
-        pool.servers(n)
-      }
-    }
-    */
-
-
     connections.clear()
     pool = new ServerPool
     for (tasks <- seed) {
@@ -259,17 +242,6 @@ object MemcacheClientSpec extends Specification with JMocker with ClassMocker {
       }
 
       client.get("b") mustEqual Some("b")
-
-
-/*
-      client.
-      for (s <- servers) {
-        s.awaitConnection(500) mustBe true
-      }
-      servers(0).fromClient mustEqual List("get a\r\n")
-      servers(1).fromClient mustEqual List("get b\r\n")
-      servers(2).fromClient mustEqual List("get c\r\n")
-*/
     }
   }
 }
