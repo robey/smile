@@ -139,6 +139,9 @@ object ServerPool {
       pool.connectTimeout = n
       pool.connector.setConnectTimeoutMillis(n)
     }
+    for (n <- attr.getInt("max_failures_before_ejection")) {
+      pool.maxFailuresBeforeEjection = n
+    }
     pool
   }
 }
