@@ -32,12 +32,12 @@ class KetamaNodeLocator(hasher: KeyHasher) extends NodeLocator {
 
   def this() = this(KeyHasher.KETAMA)
 
-  def setPool(pool: ServerPool) = {
+  def setPool(pool: ServerPool) = synchronized {
     this.pool = pool
     createContinuum
   }
 
-  def findNode(key: Array[Byte]): MemcacheConnection = {
+  def findNode(key: Array[Byte]): MemcacheConnection = synchronized {
     val hash = hasher.hashKey(key)
     val tail = continuum.underlying.tailMap(hash)
     continuum(if (tail.isEmpty) continuum.firstKey else tail.firstKey)
@@ -54,13 +54,14 @@ class KetamaNodeLocator(hasher: KeyHasher) extends NodeLocator {
 
   private def createContinuum() = {
     // we use (NUM_REPS * #servers) total points, but allocate them based on server weights.
-    val totalWeight = pool.servers.foldLeft(0.0) { _ + _.weight }
+    val serverCount = pool.liveServers.size
+    val totalWeight = pool.liveServers.foldLeft(0.0) { _ + _.weight }
     continuum.clear
 
-    for (node <- pool.servers) {
+    for (node <- pool.liveServers) {
       val percent = node.weight.toDouble / totalWeight
       // the tiny fudge fraction is added to counteract float errors.
-      val itemWeight = (percent * pool.servers.size * (NUM_REPS / 4) + 0.0000000001).toInt
+      val itemWeight = (percent * serverCount * (NUM_REPS / 4) + 0.0000000001).toInt
       for (k <- 0 until itemWeight) {
         val key = if (node.port == 11211) {
           node.hostname + "-" + k
@@ -73,8 +74,8 @@ class KetamaNodeLocator(hasher: KeyHasher) extends NodeLocator {
       }
     }
 
-    assert(continuum.size <= NUM_REPS * pool.servers.size)
-    assert(continuum.size >= NUM_REPS * (pool.servers.size - 1))
+    assert(continuum.size <= NUM_REPS * serverCount)
+    assert(continuum.size >= NUM_REPS * (serverCount - 1))
   }
 
   override def toString() = {

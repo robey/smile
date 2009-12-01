@@ -20,4 +20,6 @@ package net.lag.smile
 import net.lag.logging.Logger
 import com.twitter.xrayspecs.XraySpecsRunner
 
-object TestRunner extends XraySpecsRunner
+object TestRunner extends XraySpecsRunner {
+  Logger.get("").setLevel(Logger.OFF)
+}

@@ -28,6 +28,7 @@ case class Receive(count: Int) extends Task
 case class Send(data: Array[Byte]) extends Task
 case class Sleep(ms: Int) extends Task
 case object Disconnect extends Task
+case object SkipAwaitConnection extends Task
 case object KillListenSocket extends Task
 
 
@@ -73,6 +74,8 @@ class FakeMemcacheConnection(tasks: List[Task], var port: Int) extends Runnable 
             } catch {
               case x: InterruptedException =>
             }
+          case SkipAwaitConnection =>
+            awaitConnection(5000)
           case Disconnect =>
             while (gotConnection.availablePermits > 0) {
               Thread.sleep(50)

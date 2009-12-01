@@ -73,12 +73,37 @@ Configuration can be done with a configgy block, like so:
     memcache {
       distribution = "ketama"
       hash = "fnv1a-64"
-      namespace = "widgets"
+      namespace = "widgets:"
       servers = [ "memcache1:11211", "memcache2:11211", "memcache3:11211" ]
     }
 
 The name "memcache" is arbitrary -- use whatever name you want, and pass the
 nested block into `MemcacheClient.create`.
+
+Config settings:
+
+- **`distribution`** -
+  algorithm for finding a server for a key; builtin distributions are "modulo", "ketama", and
+  "sequential", or you can add your own
+- **`hash`** -
+  hash function to use when determining the server; builtin functions are "crc32-itu", "ketama",
+  "fnv1-32", "fnv1a-32", "fnv1-64", "fnv1a-64"
+- **`namespace`** -
+  optional prefix to put in front of each key before hashing
+- **`servers`** -
+  list of memcache servers
+- **`retry_delay_sec`** -
+  when we fail to connect to a server, how many seconds should we wait before trying again; all
+  requests to that server will fail immediately in the interim
+- **`read_timeout_msec`** -
+  timeout for reading server responses before giving up and raising an exception
+- **`connect_timeout_msec`** -
+  timeout for waiting for a connection to a server before giving up and raising an exception
+- **`max_failures_before_ejection`** -
+  number of consecutive times a server can throw an exception before that server is removed from
+  the pool (for **`retry_delay_sec`** seconds)
+- **`trace`** -
+  true if smile should log *all bytes* sent/received for trace-level debugging
 
 
 TO-DO

@@ -31,7 +31,7 @@ import scala.collection.mutable
  * Convenience factory methods exist on the `MemcacheClient` object.
  */
 class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
-  private val log = Logger.get
+  private val log = Logger.get(getClass.getName)
 
   private var pool: ServerPool = null
   var namespace: Option[String] = None
@@ -68,10 +68,11 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def getData(key: String): Option[Array[Byte]] = {
-    val (node, rkey) = nodeForKey(key)
-    node.get(rkey) match {
-      case None => None
-      case Some(v) => Some(v.data)
+    withNode(key) { (node, key) =>
+      node.get(key) match {
+        case None => None
+        case Some(v) => Some(v.data)
+      }
     }
   }
 
@@ -111,17 +112,20 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     val keyMap = new mutable.HashMap[String, String]
     val nodeKeys = new mutable.HashMap[MemcacheConnection, mutable.ListBuffer[String]]
     for (key <- keys) {
-      val (node, rkey) = nodeForKey(key)
-      keyMap(rkey) = key
-      nodeKeys.getOrElseUpdate(node, new mutable.ListBuffer[String]) += rkey
+      val (node, realKey) = nodeForKey(key)
+      keyMap(realKey) = key
+      nodeKeys.getOrElseUpdate(node, new mutable.ListBuffer[String]) += realKey
     }
+
     val futures: Iterable[scala.actors.Future[Map[String, MemcacheResponse.Value]]] = for ((node, keyList) <- nodeKeys) yield BulletProofFuture.future {
-      try {
-        node.get(keyList.toArray)
-      } catch {
-        case e: Exception =>
-          log.error("Exception contacting %s: %s", node, e)
-          Map.empty
+      withNode(node) {
+        try {
+          node.get(keyList.toArray)
+        } catch {
+          case e: Exception =>
+            log.error("Exception contacting %s: %s", node, e)
+            Map.empty
+        }
       }
     }
     Map.empty ++ (for (future <- futures; (key, value) <- future()) yield (keyMap(key), value.data))
@@ -156,8 +160,9 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def setData(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit = {
-    val (node, rkey) = nodeForKey(key)
-    node.set(rkey, value, flags, expiry)
+    withNode(key) { (node, rkey) =>
+      node.set(rkey, value, flags, expiry)
+    }
   }
 
   /**
@@ -215,8 +220,9 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def addData(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean = {
-    val (node, rkey) = nodeForKey(key)
-    node.add(rkey, value, flags, expiry)
+    withNode(key) { (node, rkey) =>
+      node.add(rkey, value, flags, expiry)
+    }
   }
 
   /**
@@ -286,8 +292,9 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def replaceData(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean = {
-    val (node, rkey) = nodeForKey(key)
-    node.replace(rkey, value, flags, expiry)
+    withNode(key) { (node, rkey) =>
+      node.replace(rkey, value, flags, expiry)
+    }
   }
 
   /**
@@ -350,8 +357,9 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def appendData(key: String, value: Array[Byte]): Boolean = {
-    val (node, rkey) = nodeForKey(key)
-    node.append(rkey, value, 0, 0)
+    withNode(key) { (node, rkey) =>
+      node.append(rkey, value, 0, 0)
+    }
   }
 
   /**
@@ -371,13 +379,12 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * @return the name of the server used to fetch the given key
    */
   def serverForKey(key: String): String = {
-    val (node, rkey) = nodeForKey(key)
-    "%s:%d:%d".format(node.hostname, node.port, node.weight)
+    withNode(key) { (node, rkey) =>
+      "%s:%d:%d".format(node.hostname, node.port, node.weight)
+    }
   }
 
-
-
-  private def nodeForKey(key: String): (MemcacheConnection, String) = {
+  def nodeForKey(key: String): (MemcacheConnection, String) = {
     val realKey = namespace match {
       case None => key
       case Some(prefix) => prefix + key
@@ -386,6 +393,39 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
       throw new KeyTooLongException
     }
     (locator.findNode(realKey.getBytes("utf-8")), realKey)
+  }
+
+  private def withNode[T](key: String)(f: (MemcacheConnection, String) => T): T = {
+    checkForUneject()
+    val (node, realKey) = nodeForKey(key)
+    withNode(node) { f(node, realKey) }
+  }
+
+  private def withNode[T](node: MemcacheConnection)(f: => T): T = {
+    try {
+      f
+    } catch {
+      case e: MemcacheClientError =>
+        throw e
+      case e: MemcacheServerException =>
+        if (node.isEjected) {
+          log.info("Ejecting from pool: %s", node)
+          checkForEject()
+        }
+        throw e
+    }
+  }
+
+  private def checkForUneject() {
+    if (pool.shouldRecheckEjectedConnections) {
+      log.info("Retrying ejections...")
+      locator.setPool(pool)
+    }
+  }
+
+  private def checkForEject() {
+    pool.scanForEjections()
+    locator.setPool(pool)
   }
 }
 

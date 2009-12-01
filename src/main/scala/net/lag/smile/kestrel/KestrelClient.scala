@@ -145,7 +145,9 @@ class KestrelClient(val messageStore: MessageStore) {
   }
 
   /**
+   * FIXME remove.
    */
+  @deprecated
   def queueIterator[T](key: String)(unpacker: String => T) = new Iterator[T] {
     var nextItem: Option[String] = None
 
