@@ -19,6 +19,8 @@ package net.lag.smile
 
 import _root_.java.util.concurrent.CountDownLatch
 import _root_.scala.collection.mutable
+import _root_.com.twitter.xrayspecs.Time
+import _root_.com.twitter.xrayspecs.TimeConversions._
 import _root_.org.specs.Specification
 import _root_.org.specs.mock.{ClassMocker, JMocker}
 
@@ -233,7 +235,7 @@ object MemcacheClientSpec extends Specification with JMocker with ClassMocker {
       }
       client.get("b") mustEqual None
 
-      Time.advance(60000)
+      Time.advance(60.seconds)
       connections(1).isEjected must beFalse
 
       expect {

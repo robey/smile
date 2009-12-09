@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.actors.{Actor, OutputChannel, TIMEOUT}
 import scala.actors.Actor._
 import scala.collection.mutable
+import com.twitter.xrayspecs.Time
+import com.twitter.xrayspecs.TimeConversions._
 import net.lag.extensions._
 import net.lag.logging.Logger
 import net.lag.naggati.{IoHandlerActorAdapter, MinaMessage}
@@ -41,7 +43,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   @volatile protected[smile] var session: Option[IoSession] = None
 
   // if the last connection attempt failed, this contains the time we should try next:
-  @volatile protected[smile] var delaying: Option[Long] = None
+  @volatile protected[smile] var delaying: Option[Time] = None
 
   // useful for marking servers as dead at a higher level
   var consecutiveFailures = new AtomicInteger(0)
@@ -53,7 +55,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           case None => "not connected"
           case Some(d) =>
             if (d > Time.now) {
-              "waiting %d sec to retry".format((d - Time.now + 999) / 1000)
+              "waiting %d sec to retry".format(((d - Time.now).inMilliseconds + 999) / 1000)
             } else {
               "ready to retry"
             }
@@ -165,7 +167,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
 
   def eject() {
     synchronized {
-      delaying = Some(Time.now + pool.retryDelay)
+      delaying = Some(Time.now + pool.retryDelay.milliseconds)
       session = None
     }
   }

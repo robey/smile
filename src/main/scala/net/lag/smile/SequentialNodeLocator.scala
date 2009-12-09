@@ -18,8 +18,9 @@
 package net.lag.smile
 
 import java.util.Random
-import net.lag.extensions._
 import scala.collection.mutable
+import com.twitter.xrayspecs.Time
+import net.lag.extensions._
 
 
 /**
@@ -45,7 +46,7 @@ class SequentialNodeLocator(hasher: KeyHasher) extends NodeLocator {
       }
     }
 
-    val rand = new Random(Time.now)
+    val rand = new Random(Time.now.inMilliseconds)
     val randomized = new mutable.ListBuffer[MemcacheConnection]
     while (fanout.size > 0) {
       val idx = rand.nextInt(fanout.size)

@@ -19,6 +19,8 @@ package net.lag.smile
 
 import _root_.net.lag.naggati.Steps._
 import _root_.java.nio.ByteOrder
+import _root_.com.twitter.xrayspecs.Time
+import _root_.com.twitter.xrayspecs.TimeConversions._
 import _root_.org.apache.mina.core.buffer.IoBuffer
 import _root_.org.apache.mina.core.session.{AbstractIoSession, DummySession, IoSession}
 import _root_.org.apache.mina.filter.codec._
@@ -111,12 +113,12 @@ object MemcacheConnectionSpec extends Specification {
       server.awaitConnection(1) mustBe false
 
       conn.ensureConnected mustBe false
-      conn.delaying must beSome[Long]
+      conn.delaying must beSome[Time]
       conn.session mustEqual None
       server.stop
 
       // now verify that the server comes back.
-      Time.advance(pool.retryDelay + 1)
+      Time.advance(pool.retryDelay.milliseconds + 1.millisecond)
       server = new FakeMemcacheConnection(Receive(10) :: Send("VALUE fail 0 3\r\nyes\r\nEND\r\n".getBytes) :: Nil, server.port)
       server.start
       conn.ensureConnected mustBe true
