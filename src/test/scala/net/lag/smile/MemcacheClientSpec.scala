@@ -22,7 +22,6 @@ import _root_.scala.collection.mutable
 import _root_.org.specs.Specification
 import _root_.org.specs.mock.{ClassMocker, JMocker}
 
-
 object MemcacheClientSpec extends Specification with JMocker with ClassMocker {
 
   var pool: ServerPool = null
@@ -135,6 +134,103 @@ object MemcacheClientSpec extends Specification with JMocker with ClassMocker {
       val1 mustEqual Some("apple")
       val2 mustEqual Some("beach")
       val3 mustEqual Some("conch")
+      for (s <- servers) {
+        s.awaitConnection(500) mustBe true
+      }
+      servers(0).fromClient mustEqual List("get a\r\n")
+      servers(1).fromClient mustEqual List("get b\r\n")
+      servers(2).fromClient mustEqual List("get c\r\n")
+    }
+
+    "support timeout gets w/ cache hits" in {
+      makeServers(List(
+        Receive(15) :: Sleep(1000) :: Send("VALUE a 0 5\r\napple\r\nEND\r\n".getBytes) :: Nil,
+        Receive(15) :: Sleep(1000) :: Send("VALUE b 0 5\r\nbeach\r\nEND\r\n".getBytes) :: Nil,
+        Receive(15) :: Sleep(1000) :: Send("VALUE c 0 5\r\nconch\r\nEND\r\n".getBytes) :: Nil
+      ))
+
+      expect {
+        one(locator).findNode("a".getBytes) willReturn connections(0)
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+        one(locator).findNode("c".getBytes) willReturn connections(2)
+      }
+
+      client.get("a",1500) mustEqual Some("apple")
+      client.get("b",1500) mustEqual Some("beach")
+      client.get("c",1500) mustEqual Some("conch")
+      for (s <- servers) {
+        s.awaitConnection(500) mustBe true
+      }
+      servers(0).fromClient mustEqual List("get a /t=1500\r\n")
+      servers(1).fromClient mustEqual List("get b /t=1500\r\n")
+      servers(2).fromClient mustEqual List("get c /t=1500\r\n")
+    }
+
+    "support timeout > pool read timeout" in {
+      makeServers(List(
+        Receive(15) :: Sleep(3000) :: Send("VALUE a 0 5\r\napple\r\nEND\r\n".getBytes) :: Nil,
+        Receive(15) :: Sleep(3000) :: Send("VALUE b 0 5\r\nbeach\r\nEND\r\n".getBytes) :: Nil,
+        Receive(15) :: Sleep(3000) :: Send("VALUE c 0 5\r\nconch\r\nEND\r\n".getBytes) :: Nil
+      ))
+
+      expect {
+        one(locator).findNode("a".getBytes) willReturn connections(0)
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+        one(locator).findNode("c".getBytes) willReturn connections(2)
+      }
+
+      client.get("a",4000) mustEqual Some("apple")
+      client.get("b",4000) mustEqual Some("beach")
+      client.get("c",4000) mustEqual Some("conch")
+      for (s <- servers) {
+        s.awaitConnection(500) mustBe true
+      }
+      servers(0).fromClient mustEqual List("get a /t=4000\r\n")
+      servers(1).fromClient mustEqual List("get b /t=4000\r\n")
+      servers(2).fromClient mustEqual List("get c /t=4000\r\n")
+    }
+
+    "support timeout gets w/ cache misses" in {
+      makeServers(List(
+        Receive(15) :: Sleep(1000) :: Send("END\r\n".getBytes) :: Nil,
+        Receive(15) :: Sleep(1000) :: Send("END\r\n".getBytes) :: Nil,
+        Receive(15) :: Sleep(1000) :: Send("END\r\n".getBytes) :: Nil
+      ))
+
+      expect {
+        one(locator).findNode("a".getBytes) willReturn connections(0)
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+        one(locator).findNode("c".getBytes) willReturn connections(2)
+      }
+
+      client.get("a",1500) mustEqual None
+      client.get("b",1500) mustEqual None
+      client.get("c",1500) mustEqual None
+      for (s <- servers) {
+        s.awaitConnection(500) mustBe true
+      }
+      servers(0).fromClient mustEqual List("get a /t=1500\r\n")
+      servers(1).fromClient mustEqual List("get b /t=1500\r\n")
+      servers(2).fromClient mustEqual List("get c /t=1500\r\n")
+    }
+
+    "respect pool.readTimeout when no get timeout specified" in {
+      makeServers(List(
+        Receive(7) :: Sleep(3000) :: Send("VALUE a 0 5\r\napple\r\nEND\r\n".getBytes) :: Nil,
+        Receive(7) :: Sleep(3000) :: Send("VALUE b 0 5\r\nbeach\r\nEND\r\n".getBytes) :: Nil,
+        Receive(7) :: Sleep(3000) :: Send("VALUE c 0 5\r\nconch\r\nEND\r\n".getBytes) :: Nil
+      ))
+
+      expect {
+        one(locator).findNode("a".getBytes) willReturn connections(0)
+        one(locator).findNode("b".getBytes) willReturn connections(1)
+        one(locator).findNode("c".getBytes) willReturn connections(2)
+      }
+
+      client.get("a") must throwA[MemcacheServerTimeout]
+      client.get("b") must throwA[MemcacheServerTimeout]
+      client.get("c") must throwA[MemcacheServerTimeout]
+
       for (s <- servers) {
         s.awaitConnection(500) mustBe true
       }

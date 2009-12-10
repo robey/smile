@@ -24,7 +24,9 @@
     <dependency org="org.scala-lang" name="scala-compiler" rev="2.7.6" />
     <dependency org="org.scala-lang" name="scala-library" rev="2.7.6" />
 
-    <dependency org="org.scala-tools.testing" name="specs" rev="1.6.1" conf="test->*"/>
+    <dependency org="org.scala-tools.testing" name="specs" rev="1.6.1" conf="test->*">
+      <exclude org="javax.script"/>
+    </dependency>
     <dependency org="org.jmock" name="jmock" rev="2.4.0" conf="test->*" />
     <dependency org="org.hamcrest" name="hamcrest-all" rev="1.1" conf="test->*" />
     <dependency org="cglib" name="cglib" rev="2.1_3" conf="test->*" />

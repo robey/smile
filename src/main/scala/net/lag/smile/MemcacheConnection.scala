@@ -70,7 +70,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
 
   @throws(classOf[MemcacheServerException])
   def get(keys: Array[String]): Map[String, MemcacheResponse.Value] = {
-    serverActor !? Get("get", keys.mkString(" ")) match {
+    serverActor !? Get("get", keys.mkString(" "), 0, "") match {
       case Timeout =>
         registerFailure()
         throw new MemcacheServerTimeout
@@ -88,7 +88,12 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
 
   @throws(classOf[MemcacheServerException])
   def get(key: String): Option[MemcacheResponse.Value] = {
-    serverActor !? Get("get", key) match {
+    get(key, 0, "")
+  }
+
+  @throws(classOf[MemcacheServerException])
+  def get(key: String, timeout: Long, flags: String): Option[MemcacheResponse.Value] = {
+    serverActor !? Get("get", key, timeout, flags) match {
       case Timeout =>
         registerFailure()
         throw new MemcacheServerTimeout
@@ -229,7 +234,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   //  ----------  actor
 
   private case object Stop
-  private case class Get(query: String, key: String)
+  private case class Get(query: String, key: String, timeout: Long, flags: String)
   private case class Store(query: String, key: String, flags: Int, expiry: Int, data: Array[Byte])
 
   private case object ConnectionFailed
@@ -250,13 +255,14 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           disconnect
           self.exit
 
-        case Get(query, key) =>
+        case Get(query, key, timeout, flags) =>
           if (!ensureConnected()) {
             reply(ConnectionFailed)
           } else {
             for (s <- session) {
-              s.write(query + " " + key + "\r\n")
-              waitForGetResponse(sender)
+              s.write(makeQueryString(query, key, timeout, flags))
+              val waitTime: Long = if (timeout > 0) timeout else pool.readTimeout
+              waitForGetResponse(sender, waitTime)
             }
           }
 
@@ -290,8 +296,17 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
    * server. Timeouts and disconnects are handled too. Any response is passed into the
    * handler block.
    */
-  private def waitForResponse(sender: OutputChannel[Any])(handler: AnyRef => Unit) = {
-    reactWithin(pool.readTimeout) {
+  private def waitForResponse(sender: OutputChannel[Any])(handler: AnyRef => Unit): Unit = {
+    waitForResponse(sender, pool.readTimeout)(handler)
+  }
+
+  /**
+   * Handle mina messages on this connection while waiting for a response from the memcache
+   * server. Timeouts and disconnects are handled too. Any response is passed into the
+   * handler block.
+   */
+  private def waitForResponse(sender: OutputChannel[Any], timeout: Long)(handler: AnyRef => Unit): Unit = {
+    reactWithin(timeout) {
       case MinaMessage.MessageReceived(message) =>
         handler(message)
       case MinaMessage.ExceptionCaught(cause) =>
@@ -318,7 +333,11 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   }
 
   private def waitForGetResponse(sender: OutputChannel[Any]): Unit = {
-    waitForResponse(sender) { message =>
+    waitForGetResponse(sender, pool.readTimeout)
+  }
+
+  private def waitForGetResponse(sender: OutputChannel[Any], timeout: Long): Unit = {
+    waitForResponse(sender, timeout) { message =>
       message match {
         case v: MemcacheResponse.Value =>
           values += v
@@ -342,5 +361,18 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         case item => sender ! item
       }
     }
+  }
+
+  private def makeQueryString(query: String, key: String, timeout: Long, flags: String):String = {
+    var req = new StringBuffer()
+    req.append(query).append(" ").append(key)
+    if (flags != null && flags.length > 0) {
+      req.append(" ").append(flags)
+    }
+    if (timeout > 0) {
+      req.append(" /t=").append(timeout)
+    }
+    req.append("\r\n")
+    req.toString
   }
 }

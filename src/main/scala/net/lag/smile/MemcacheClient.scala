@@ -68,8 +68,17 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def getData(key: String): Option[Array[Byte]] = {
-    withNode(key) { (node, key) =>
-      node.get(key) match {
+    getData(key, 0)
+  }
+
+  /**
+   * Get an item from the memcache cluster as an array of bytes, waiting timeout
+   * ms for data to be available
+   */
+  @throws(classOf[MemcacheServerException])
+  def getData(key: String, timeout: Long): Option[Array[Byte]] = {
+    withNode(key) { (node,key) =>
+      node.get(key, timeout, "") match {
         case None => None
         case Some(v) => Some(v.data)
       }
@@ -82,7 +91,16 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def get(key: String): Option[T] = {
-    getData(key) match {
+    get(key, 0)
+  }
+
+  /**
+   * Get an item from the memcache cluster and decode it using the default
+   * codec.  Wait timeout ms for data to be available
+   */
+  @throws(classOf[MemcacheServerException])
+  def get(key: String, timeout: Long): Option[T] = {
+    getData(key, timeout) match {
       case None => None
       case Some(data) => Some(codec.decode(data))
     }
@@ -94,7 +112,16 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def get[A](key: String, codec: MemcacheCodec[A]): Option[A] = {
-    getData(key) match {
+    get(key, 0, codec)
+  }
+
+  /**
+   * Get an item from the memcache cluster and decode it using a specific
+   * codec. Wait timeout ms for data to be available
+   */
+  @throws(classOf[MemcacheServerException])
+  def get[A](key: String, timeout: Long, codec: MemcacheCodec[A]): Option[A] = {
+    getData(key, timeout) match {
       case None => None
       case Some(data) => Some(codec.decode(data))
     }
@@ -154,7 +181,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   /**
    * Set an item in memcache as a byte array.
    *
-   * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)
+   * @param flags arbitrary flags to be saved by the server (they have no intrinsic significance)
    * @param expiry absolute or relative time, in seconds or epoch itme, when this item should
    *   expire from the cache (0 = never)
    */
