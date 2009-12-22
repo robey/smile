@@ -10,6 +10,8 @@
       <ibiblio name="scala-tools.org" m2compatible="true" root="http://scala-tools.org/repo-releases/" />
       <ibiblio name="scala-tools.org-snapshots" m2compatible="true" root="http://scala-tools.org/repo-snapshots/" changingPattern=".*-SNAPSHOT" />
       <ibiblio name="maven2-repository.dev.java.net" m2compatible="true" root="http://download.java.net/maven/2/"/>
+      <ibiblio name="specs-extra" m2compatible="true" root="http://specs.googlecode.com/svn/maven2/" />
+
       <!-- for smack, smackx -->
       <ibiblio name="reucon" m2compatible="true" root="http://maven.reucon.com/public/" />
       <ibiblio name="maven2" m2compatible="true" usepoms="false" />
