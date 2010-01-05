@@ -83,7 +83,7 @@ object KestrelSpec extends Specification {
     }
 
     "get honors short timeout" in {
-      duration { client.get("leisure", 1) mustEqual None } must be_<=(10)
+      duration { client.get("leisure", 1) mustEqual None } must be_<(50)
     }
 
     "poll" in {
