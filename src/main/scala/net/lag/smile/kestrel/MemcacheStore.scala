@@ -35,6 +35,7 @@ class MemcacheStore(config: ConfigMap) extends MessageStore {
   def poll(key: String): Option[String] = client.get(key)
   def pollData(key: String): Option[Array[Byte]] = client.getData(key)
   def put(key: String, value: String): Unit = client.set(key, value)
+  def put(key: String, value: String, expiry: Int) = client.set(key, value, 0, expiry)
   def putData(key: String, value: Array[Byte]): Unit = client.setData(key, value)
   def shutdown() = client.shutdown
 }

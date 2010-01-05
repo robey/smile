@@ -55,6 +55,9 @@ class MemoryStore extends MessageStore {
   }
 
   def put(key: String, value: String) = putData(key, value.getBytes("UTF-8"))
+  
+  // The memory store has no concept of an expiry time.
+  def put(key: String, value: String, expiry: Int) = putData(key, value.getBytes("UTF-8"))
 
   def shutdown() = { }
 

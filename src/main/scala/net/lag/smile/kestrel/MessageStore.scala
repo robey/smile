@@ -42,6 +42,11 @@ trait MessageStore {
    * Puts an item on the queue.
    */
   def put(key: String, value: String): Unit
+  
+  /**
+   * Puts an item on the queue with the given expiry
+   */
+  def put(key: String, value: String, expiry: Int): Unit
 
   /**
    * Shutdown any underlying library.
