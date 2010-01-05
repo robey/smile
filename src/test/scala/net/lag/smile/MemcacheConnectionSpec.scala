@@ -19,7 +19,7 @@ package net.lag.smile
 
 import _root_.net.lag.naggati.Steps._
 import _root_.java.nio.ByteOrder
-import _root_.com.twitter.xrayspecs.Time
+import _root_.com.twitter.xrayspecs.{Eventually, Time}
 import _root_.com.twitter.xrayspecs.TimeConversions._
 import _root_.org.apache.mina.core.buffer.IoBuffer
 import _root_.org.apache.mina.core.session.{AbstractIoSession, DummySession, IoSession}
@@ -92,7 +92,13 @@ object MemcacheConnectionSpec extends Specification {
       server.awaitConnection(500) mustBe true
       server.awaitDisconnected(500) mustBe true
       server.awaitConnection(50) mustBe false
-      data(conn.get("fail")) mustEqual "no"
+      (
+        try {
+          data(conn.get("fail"))
+        } catch {
+          case _: net.lag.smile.MemcacheServerTimeout => "TIMEOUT"
+        }
+      ) mustEqual("no")
 
       conn.ensureConnected mustBe true
       server.awaitConnection(500) mustBe true
