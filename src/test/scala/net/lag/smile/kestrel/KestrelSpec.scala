@@ -54,6 +54,13 @@ object KestrelSpec extends Specification {
       client.put("leisure", "beartrap")
       store.toString mustEqual "[leisure=List(beartrap), work=List(apple, rabbit)]"
     }
+    
+    "set with expiry" in {
+      client.put("work", "apple", 5000)
+      client.put("work", "rabbit") // No expiry.
+      client.put("leisure", "beartrap", 10000)
+      store.toString mustEqual "[leisure=List(beartrap), work=List(apple, rabbit)]"
+    }
 
     "get" in {
       client.put("work", "apple")
