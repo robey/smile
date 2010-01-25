@@ -238,6 +238,38 @@ object MemcacheConnectionSpec extends Specification {
       }
     }
 
+    "delete" in {
+      "a single value" in {
+        server = new FakeMemcacheConnection(Receive(12) :: Send("DELETED\r\n".getBytes) :: Nil)
+        server.start
+
+        conn = new MemcacheConnection("localhost", server.port, 1)
+        conn.pool = pool
+        conn.delete("cat") mustEqual true
+        server.fromClient mustEqual List("delete cat\r\n")
+      }
+
+      "not found" in {
+        server = new FakeMemcacheConnection(Receive(12) :: Send("NOT_FOUND\r\n".getBytes) :: Nil)
+        server.start
+
+        conn = new MemcacheConnection("localhost", server.port, 1)
+        conn.pool = pool
+        conn.delete("cat") mustEqual false
+        server.fromClient mustEqual List("delete cat\r\n")
+      }
+      
+      "with server error" in {
+        server = new FakeMemcacheConnection(Receive(12) :: Send("ERROR\r\n".getBytes) :: Nil)
+        server.start
+
+        conn = new MemcacheConnection("localhost", server.port, 1)
+        conn.pool = pool
+        conn.delete("cat") must throwA[MemcacheServerException]
+        server.fromClient mustEqual List("delete cat\r\n")        
+      }
+    }
+
     // impl is identical to "set"
     "add" in {
       "a single value" in {
