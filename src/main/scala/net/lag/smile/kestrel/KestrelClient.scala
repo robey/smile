@@ -137,13 +137,13 @@ class KestrelClient(val messageStore: MessageStore) {
       impl.put(key, value)
     } catch {
       case e: Exception =>
-        log.warning("Exception talking to starling (set): %s -- retrying", e)
+        log.warning("Exception talking to kestrel (set): %s -- retrying", e)
         Thread.sleep(250)
         // if it fails this time, intentionally throw the exception.
         impl.put(key, value)
     }
   }
-  
+
   /**
    * Put an item on a queue with a given expiry.
    */
@@ -152,7 +152,7 @@ class KestrelClient(val messageStore: MessageStore) {
       impl.put(key, value, expiry)
     } catch {
       case e: Exception =>
-        log.warning("Exception talking to starling (set): %s -- retrying", e)
+        log.warning("Exception talking to kestrel (set): %s -- retrying", e)
         Thread.sleep(250)
         // if it fails this time, intentionally throw the exception.
         impl.put(key, value, expiry)
