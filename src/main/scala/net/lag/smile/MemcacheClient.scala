@@ -211,6 +211,16 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   def set[A](key: String, value: A, codec: MemcacheCodec[A]): Unit = set(key, value, 0, 0, codec)
 
   /**
+   * Delete a given item from memcache
+   */
+  @throws(classOf[MemcacheServerException])
+  def delete(key: String): Unit = {
+    withNode(key) { (node, rkey) =>
+      node.delete(rkey)
+    }
+  }
+  
+  /**
    * If nothing else is currently stored for this key, add an item to memcache as a byte array.
    *
    * @param flogs arbitrary flags to be saved by the server (they have no intrinsic significance)

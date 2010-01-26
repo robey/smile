@@ -134,6 +134,27 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   }
 
   @throws(classOf[MemcacheServerException])
+  def delete(key: String): Boolean = {
+    serverActor !? Delete("delete", key) match {
+      case Timeout =>
+        registerFailure()
+        throw new MemcacheServerTimeout
+      case ConnectionFailed =>
+        registerFailure()
+        throw new MemcacheServerOffline
+      case Error(description) =>
+        registerFailure()
+        throw new MemcacheServerException(description)
+      case MemcacheResponse.Deleted =>
+        clearFailures()
+        true
+      case MemcacheResponse.NotFound =>
+        clearFailures()
+        false
+    }
+  }
+
+  @throws(classOf[MemcacheServerException])
   def set(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean =
     store("set", key, value, flags, expiry)
 
@@ -233,6 +254,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   private case object Stop
   private case class Get(query: String, key: String)
   private case class Store(query: String, key: String, flags: Int, expiry: Int, data: Array[Byte])
+  private case class Delete(query: String, key: String)
 
   private case object ConnectionFailed
   private case class Error(description: String)
@@ -271,6 +293,16 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
               s.write(data)
               s.write("\r\n")
               waitForStoreResponse(sender)
+            }
+          }
+
+        case Delete(query, key) =>
+          if (!ensureConnected()) {
+            reply(ConnectionFailed)
+          } else {
+            for (s <- session) {
+              s.write(query + " " + key + "\r\n")
+              waitForDeleteResponse(sender)
             }
           }
 
@@ -342,6 +374,17 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         case MemcacheResponse.ClientError(x) => sender ! Error("client error: " + x)
         case MemcacheResponse.ServerError(x) => sender ! Error("server error: " + x)
         case item => sender ! item
+      }
+    }
+  }
+
+  private def waitForDeleteResponse(sender: OutputChannel[Any]): Unit = {
+    waitForResponse(sender) { message =>
+      message match {
+        case MemcacheResponse.Error => sender ! Error("error")
+        case MemcacheResponse.ClientError(x) => sender ! Error("client error: " + x)
+        case MemcacheResponse.ServerError(x) => sender ! Error("server error: " + x)
+        case item => sender ! item        
       }
     }
   }
