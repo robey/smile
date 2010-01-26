@@ -62,7 +62,9 @@
 
   <target name="package" depends="test, make-non-executable-jar, make-executable-jar,
     generate-scripts, docs" description="build complete jar(s) and docs">
-    <ivy:makepom ivyfile="${basedir}/ivy/ivy.xml" pomfile="${dist.dir}/${dist.name}.pom" />
+    <ivy:makepom ivyfile="${basedir}/ivy/ivy.xml" pomfile="${dist.dir}/${dist.name}.pom">
+      <mapping conf="default" scope="compile" />
+    </ivy:makepom>
     <ivy:deliver conf="*(public)" />
     <condition property="dist.zip.name" value="namesearch-${revision-short}.zip">
       <isset property="dist_use_build_number" />
