@@ -324,7 +324,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
               s.write(query + " " + key + " " + flags + " " + expiry + " " + data.length + "\r\n")
               s.write(data)
               s.write("\r\n")
-              waitForStoreResponse(sender)
+              waitForGenericResponse(sender)
             }
           }
 
@@ -405,17 +405,6 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         case MemcacheResponse.ClientError(x) => sender ! Error("client error: " + x)
         case MemcacheResponse.ServerError(x) => sender ! Error("server error: " + x)
         case x => sender ! Error("unexpected: " + x)
-      }
-    }
-  }
-
-  private def waitForStoreResponse(sender: OutputChannel[Any]): Unit = {
-    waitForResponse(sender) { message =>
-      message match {
-        case MemcacheResponse.Error => sender ! Error("error")
-        case MemcacheResponse.ClientError(x) => sender ! Error("client error: " + x)
-        case MemcacheResponse.ServerError(x) => sender ! Error("server error: " + x)
-        case item => sender ! item
       }
     }
   }
