@@ -155,6 +155,37 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   }
 
   @throws(classOf[MemcacheServerException])
+  private def incrdecr(query: String, key: String, value: Long): Option[Long] = {
+    serverActor !? IncrDecr(query, key, value) match {
+      case Timeout =>
+        registerFailure()
+        throw new MemcacheServerTimeout
+      case ConnectionFailed =>
+        registerFailure()
+        throw new MemcacheServerOffline
+      case Error(description) =>
+        registerFailure()
+        throw new MemcacheServerException(description)
+      case MemcacheResponse.NewValue(value) =>
+        clearFailures()
+        Some(value)
+      case MemcacheResponse.NotFound =>
+        clearFailures()
+        None
+    }
+  }
+
+  @throws(classOf[MemcacheServerException])
+  def incr(key: String, value: Long): Option[Long] = {
+    incrdecr("incr", key, value)
+  }
+  
+  @throws(classOf[MemcacheServerException])
+  def decr(key: String, value: Long): Option[Long] = {
+    incrdecr("decr", key, value)
+  }
+
+  @throws(classOf[MemcacheServerException])
   def set(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean =
     store("set", key, value, flags, expiry)
 
@@ -255,6 +286,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   private case class Get(query: String, key: String)
   private case class Store(query: String, key: String, flags: Int, expiry: Int, data: Array[Byte])
   private case class Delete(query: String, key: String)
+  private case class IncrDecr(query: String, key: String, value: Long)
 
   private case object ConnectionFailed
   private case class Error(description: String)
@@ -302,7 +334,17 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           } else {
             for (s <- session) {
               s.write(query + " " + key + "\r\n")
-              waitForDeleteResponse(sender)
+              waitForGenericResponse(sender)
+            }
+          }
+
+        case IncrDecr(query, key, value) =>
+          if (!ensureConnected()) {
+            reply(ConnectionFailed)
+          } else {
+            for (s <- session) {
+              s.write(query + " " + key + " " + value.toString + "\r\n")
+              waitForGenericResponse(sender)
             }
           }
 
@@ -378,7 +420,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
     }
   }
 
-  private def waitForDeleteResponse(sender: OutputChannel[Any]): Unit = {
+  private def waitForGenericResponse(sender: OutputChannel[Any]): Unit = {
     waitForResponse(sender) { message =>
       message match {
         case MemcacheResponse.Error => sender ! Error("error")

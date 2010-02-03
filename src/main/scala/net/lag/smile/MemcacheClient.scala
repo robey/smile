@@ -383,6 +383,32 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   }
 
   /**
+   * Increment a value stored at the given key
+   *
+   * @return the value of the key after the increment or None of this key was not
+   * perviously set
+   */
+  @throws(classOf[MemcacheServerException])
+  def incr(key: String, value: Long): Option[Long] = {
+    withNode(key) { (node, rkey) =>
+      node.incr(rkey, value)
+    }
+  }
+  
+  /**
+   * Decrement a value stored at the given key
+   *
+   * @return the value of the key after the decrement or None of this key was not
+   * perviously set
+   */
+  @throws(classOf[MemcacheServerException])
+  def decr(key: String, value: Long): Option[Long] = {
+    withNode(key) { (node, rkey) =>
+      node.decr(rkey, value)
+    }
+  }
+
+  /**
    * Return the server that would be used to fetch a key, using the current node locator.
    * The server name will be in the form "hostname:port:weight".
    *
