@@ -375,11 +375,33 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   /**
    * If this key has a value, append the the given data to it, using the default codec.
    *
-   * @return true if the item was replaced; false if there was no data at this key
+   * @return true if the item was appended; false if there was no data at this key
    */
   @throws(classOf[MemcacheServerException])
   def append(key: String, value: T): Boolean = {
     appendData(key, codec.encode(value))
+  }
+
+  /**
+   * If this key has a value, prepend the given byte array to it.
+   *
+   * @return true if the item was prepended; false if there was no data at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def prependData(key: String, value: Array[Byte]): Boolean = {
+    withNode(key) { (node, rkey) =>
+      node.prepend(rkey, value, 0, 0)
+    }
+  }
+
+  /**
+   * If this key has a value, prepend the the given data to it, using the default codec.
+   *
+   * @return true if the item was prepended; false if there was no data at this key
+   */
+  @throws(classOf[MemcacheServerException])
+  def prepend(key: String, value: T): Boolean = {
+    prependData(key, codec.encode(value))
   }
 
   /**
