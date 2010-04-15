@@ -179,7 +179,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   def incr(key: String, value: Long): Option[Long] = {
     incrdecr("incr", key, value)
   }
-  
+
   @throws(classOf[MemcacheServerException])
   def decr(key: String, value: Long): Option[Long] = {
     incrdecr("decr", key, value)
@@ -415,7 +415,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         case MemcacheResponse.Error => sender ! Error("error")
         case MemcacheResponse.ClientError(x) => sender ! Error("client error: " + x)
         case MemcacheResponse.ServerError(x) => sender ! Error("server error: " + x)
-        case item => sender ! item        
+        case item => sender ! item
       }
     }
   }

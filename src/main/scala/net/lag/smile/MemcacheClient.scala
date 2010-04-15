@@ -405,7 +405,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   }
 
   /**
-   * Increment a value stored at the given key
+   * Increment a value stored at the given key.
    *
    * @return the value of the key after the increment or None of this key was not
    * perviously set
@@ -416,9 +416,9 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
       node.incr(rkey, value)
     }
   }
-  
+
   /**
-   * Decrement a value stored at the given key
+   * Decrement a value stored at the given key.
    *
    * @return the value of the key after the decrement or None of this key was not
    * perviously set

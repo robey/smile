@@ -258,7 +258,7 @@ object MemcacheConnectionSpec extends Specification {
         conn.delete("cat") mustEqual false
         server.fromClient mustEqual List("delete cat\r\n")
       }
-      
+
       "with server error" in {
         server = new FakeMemcacheConnection(Receive(12) :: Send("ERROR\r\n".getBytes) :: Nil)
         server.start
@@ -266,7 +266,7 @@ object MemcacheConnectionSpec extends Specification {
         conn = new MemcacheConnection("localhost", server.port, 1)
         conn.pool = pool
         conn.delete("cat") must throwA[MemcacheServerException]
-        server.fromClient mustEqual List("delete cat\r\n")        
+        server.fromClient mustEqual List("delete cat\r\n")
       }
     }
 
@@ -341,7 +341,7 @@ object MemcacheConnectionSpec extends Specification {
         server.fromClient mustEqual List("prepend cat 0 500 5\r\nhello\r\n")
       }
     }
-    
+
     "incr" in {
       "a single value" in {
         server = new FakeMemcacheConnection(Receive(12) :: Send("1\r\n".getBytes) :: Nil)
@@ -352,6 +352,7 @@ object MemcacheConnectionSpec extends Specification {
         conn.incr("cat", 1) mustEqual Some(1)
         server.fromClient mustEqual List("incr cat 1\r\n")
       }
+
       "not found" in {
         server = new FakeMemcacheConnection(Receive(12) :: Send("NOT_FOUND\r\n".getBytes) :: Nil)
         server.start
@@ -361,6 +362,7 @@ object MemcacheConnectionSpec extends Specification {
         conn.incr("cat", 2) mustEqual None
         server.fromClient mustEqual List("incr cat 2\r\n")
       }
+
       "with server error" in {
         server = new FakeMemcacheConnection(Receive(12) :: Send("ERROR\r\n".getBytes) :: Nil)
         server.start
@@ -368,7 +370,7 @@ object MemcacheConnectionSpec extends Specification {
         conn = new MemcacheConnection("localhost", server.port, 1)
         conn.pool = pool
         conn.incr("cat", 3) must throwA[MemcacheServerException]
-        server.fromClient mustEqual List("incr cat 3\r\n")        
+        server.fromClient mustEqual List("incr cat 3\r\n")
       }
     }
 
@@ -382,6 +384,7 @@ object MemcacheConnectionSpec extends Specification {
         conn.decr("cat", 1) mustEqual Some(1)
         server.fromClient mustEqual List("decr cat 1\r\n")
       }
+
       "not found" in {
         server = new FakeMemcacheConnection(Receive(12) :: Send("NOT_FOUND\r\n".getBytes) :: Nil)
         server.start
@@ -391,6 +394,7 @@ object MemcacheConnectionSpec extends Specification {
         conn.decr("cat", 2) mustEqual None
         server.fromClient mustEqual List("decr cat 2\r\n")
       }
+
       "with server error" in {
         server = new FakeMemcacheConnection(Receive(12) :: Send("ERROR\r\n".getBytes) :: Nil)
         server.start
@@ -398,7 +402,7 @@ object MemcacheConnectionSpec extends Specification {
         conn = new MemcacheConnection("localhost", server.port, 1)
         conn.pool = pool
         conn.decr("cat", 3) must throwA[MemcacheServerException]
-        server.fromClient mustEqual List("decr cat 3\r\n")        
+        server.fromClient mustEqual List("decr cat 3\r\n")
       }
     }
   }
