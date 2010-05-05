@@ -159,7 +159,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    *   expire from the cache (0 = never)
    */
   @throws(classOf[MemcacheServerException])
-  def setData(key: String, value: Array[Byte], flags: Int, expiry: Int): Unit = {
+  def setData(key: String, value: Array[Byte], flags: Int, expiry: Int): Boolean = {
     withNode(key) { (node, rkey) =>
       node.set(rkey, value, flags, expiry)
     }
@@ -170,7 +170,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * The item's expiration will be "never".
    */
   @throws(classOf[MemcacheServerException])
-  def setData(key: String, value: Array[Byte]): Unit = setData(key, value, 0, 0)
+  def setData(key: String, value: Array[Byte]): Boolean = setData(key, value, 0, 0)
 
   /**
    * Encode an item using the default codec and set it into the memcache pool.
@@ -180,7 +180,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    *   expire from the cache (0 = never)
    */
   @throws(classOf[MemcacheServerException])
-  def set(key: String, value: T, flags: Int, expiry: Int): Unit = {
+  def set(key: String, value: T, flags: Int, expiry: Int): Boolean = {
     setData(key, codec.encode(value), flags, expiry)
   }
 
@@ -189,7 +189,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * The item's expiration will be "never".
    */
   @throws(classOf[MemcacheServerException])
-  def set(key: String, value: T): Unit = set(key, value, 0, 0)
+  def set(key: String, value: T): Boolean = set(key, value, 0, 0)
 
   /**
    * Encode an item using the given codec and set it into the memcache pool.
@@ -199,7 +199,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    *   expire from the cache (0 = never)
    */
   @throws(classOf[MemcacheServerException])
-  def set[A](key: String, value: A, flags: Int, expiry: Int, codec: MemcacheCodec[A]): Unit = {
+  def set[A](key: String, value: A, flags: Int, expiry: Int, codec: MemcacheCodec[A]): Boolean = {
     setData(key, codec.encode(value), flags, expiry)
   }
 
@@ -208,7 +208,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * The item's expiration will be "never".
    */
   @throws(classOf[MemcacheServerException])
-  def set[A](key: String, value: A, codec: MemcacheCodec[A]): Unit = set(key, value, 0, 0, codec)
+  def set[A](key: String, value: A, codec: MemcacheCodec[A]): Boolean = set(key, value, 0, 0, codec)
 
   /**
    * Delete a given item from memcache
