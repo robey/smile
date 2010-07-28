@@ -27,4 +27,7 @@ class SmileProject(info: ProjectInfo) extends StandardProject(info) {
     </licenses>
 
   override def releaseBuild = true
+
+  Credentials(Path.userHome / ".ivy2" / "credentials", log)
+  val publishTo = "nexus" at "http://nexus.scala-tools.org/content/repositories/releases/"
 }
