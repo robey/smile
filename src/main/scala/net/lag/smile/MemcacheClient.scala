@@ -219,7 +219,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
       node.delete(rkey)
     }
   }
-  
+
   /**
    * If nothing else is currently stored for this key, add an item to memcache as a byte array.
    *
@@ -242,7 +242,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * @return true if the item was added; false if something was already stored at this key
    */
   @throws(classOf[MemcacheServerException])
-  def addData(key: String, value: Array[Byte]): Unit = addData(key, value, 0, 0)
+  def addData(key: String, value: Array[Byte]): Boolean = addData(key, value, 0, 0)
 
   /**
    * If nothing else is currently stored for this key, add an item to memcache using the default
@@ -254,7 +254,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * @return true if the item was added; false if something was already stored at this key
    */
   @throws(classOf[MemcacheServerException])
-  def add(key: String, value: T, flags: Int, expiry: Int): Unit = {
+  def add(key: String, value: T, flags: Int, expiry: Int): Boolean = {
     addData(key, codec.encode(value), flags, expiry)
   }
 
@@ -266,7 +266,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * @return true if the item was added; false if something was already stored at this key
    */
   @throws(classOf[MemcacheServerException])
-  def add(key: String, value: T): Unit = add(key, value, 0, 0)
+  def add(key: String, value: T): Boolean = add(key, value, 0, 0)
 
   /**
    * If nothing else is currently stored for this key, add an item to memcache using the given
@@ -278,7 +278,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * @return true if the item was added; false if something was already stored at this key
    */
   @throws(classOf[MemcacheServerException])
-  def add[A](key: String, value: A, flags: Int, expiry: Int, codec: MemcacheCodec[A]): Unit = {
+  def add[A](key: String, value: A, flags: Int, expiry: Int, codec: MemcacheCodec[A]): Boolean = {
     addData(key, codec.encode(value), flags, expiry)
   }
 
@@ -290,7 +290,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    * @return true if the item was added; false if something was already stored at this key
    */
   @throws(classOf[MemcacheServerException])
-  def add[A](key: String, value: A, codec: MemcacheCodec[A]): Unit = add(key, value, 0, 0, codec)
+  def add[A](key: String, value: A, codec: MemcacheCodec[A]): Boolean = add(key, value, 0, 0, codec)
 
   /**
    * If this key has a value, replace it with the given byte array.
