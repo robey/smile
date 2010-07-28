@@ -47,7 +47,7 @@ object KetamaNodeLocatorSpec extends Specification {
 
   "KetamaNodeLocator" should {
     "be compatible with a standard benchmark" in {
-      val stream = ClassLoader.getSystemClassLoader.getResourceAsStream("ketama_results")
+      val stream = getClass.getClassLoader.getResourceAsStream("ketama_results")
       val reader = new BufferedReader(new InputStreamReader(stream))
       val expected = new mutable.ListBuffer[Array[String]]
       var line: String = null
@@ -74,8 +74,8 @@ object KetamaNodeLocatorSpec extends Specification {
     }
 
     "be compatible with a test on a very large server list" in {
-      ClassLoader.getSystemClassLoader.getResourceAsStream("ketama_results").read()
-      val config = Config.fromResource("test1.conf")
+      getClass.getClassLoader.getResourceAsStream("ketama_results").read()
+      val config = Config.fromResource("test1.conf", getClass.getClassLoader)
       val pool = ServerPool.fromConfig(config.configMap("memcache"))
       val ketama = new KetamaNodeLocator
       ketama.setPool(pool)

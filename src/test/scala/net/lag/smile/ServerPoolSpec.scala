@@ -35,8 +35,8 @@ object ServerPoolSpec extends Specification {
     }
 
     "read a config file" in {
-      ClassLoader.getSystemClassLoader.getResourceAsStream("ketama_results").read()
-      val config = Config.fromResource("test1.conf")
+      getClass.getClassLoader.getResourceAsStream("ketama_results").read()
+      val config = Config.fromResource("test1.conf", getClass.getClassLoader)
       val pool = ServerPool.fromConfig(config.configMap("memcache"))
       pool.servers.size mustEqual 77
       pool.servers(0).toString must include("daemon001:11211 weight=1")

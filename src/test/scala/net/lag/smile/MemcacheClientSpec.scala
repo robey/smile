@@ -25,8 +25,7 @@ import _root_.org.specs.Specification
 import _root_.org.specs.mock.{ClassMocker, JMocker}
 
 
-object MemcacheClientSpec extends Specification with JMocker with ClassMocker {
-
+class MemcacheClientSpec extends Specification with JMocker {
   var pool: ServerPool = null
   val servers = new mutable.ListBuffer[FakeMemcacheConnection]
   var client: MemcacheClient[String] = null
@@ -51,7 +50,6 @@ object MemcacheClientSpec extends Specification with JMocker with ClassMocker {
   }
 
   "MemcacheClient" should {
-
     doBefore {
       locator = mock[NodeLocator]
     }
