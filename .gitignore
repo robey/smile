@@ -1,4 +1,9 @@
-target
-dist
-tomservo.tmproj
-
+target/
+dist/
+smile.tmproj
+lib_managed/
+project/plugins/target/
+project/plugins/project/
+project/plugins/src_managed/
+project/boot/
+project/build/target/
