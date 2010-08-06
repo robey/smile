@@ -35,6 +35,7 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
 
   private var pool: ServerPool = null
   var namespace: Option[String] = None
+  var shouldRebalancePool = true  
 
   val MAX_KEY_SIZE = 250
 
@@ -477,13 +478,17 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   private def checkForUneject() {
     if (pool.shouldRecheckEjectedConnections) {
       log.info("Retrying ejections...")
-      locator.setPool(pool)
+      if (shouldRebalancePool) {
+        locator.setPool(pool)
+      }
     }
   }
 
   private def checkForEject() {
     pool.scanForEjections()
-    locator.setPool(pool)
+    if (shouldRebalancePool) {
+      locator.setPool(pool)
+    }
   }
 }
 
@@ -530,6 +535,10 @@ object MemcacheClient {
     val client = new MemcacheClient(locator, MemcacheCodec.UTF8)
     client.setPool(pool)
     client.namespace = attr.getString("namespace")
+    client.shouldRebalancePool = attr.getBool("should_rebalance_server_pool") match {
+      case Some(shouldRebalance) => shouldRebalance
+      case None => true
+    }
     client
   }
 

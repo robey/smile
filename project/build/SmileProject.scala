@@ -3,6 +3,7 @@ import com.twitter.sbt.StandardProject
 
 
 class SmileProject(info: ProjectInfo) extends StandardProject(info) {
+  val scala0Repo = "scala0.net" at "http://scala0.net/repositories/"
   val specs = "org.scala-tools.testing" % "specs" % "1.6.2.1"
   val xrayspecs = "com.twitter" % "xrayspecs" % "1.0.7"
   val vscaladoc = "org.scala-tools" % "vscaladoc" % "1.1-md-3"
@@ -16,6 +17,8 @@ class SmileProject(info: ProjectInfo) extends StandardProject(info) {
   val mina = "org.apache.mina" % "mina-core" % "2.0.0-M6"
   val slf4j_api = "org.slf4j" % "slf4j-api" % "1.5.2"
   val slf4j_jdk14 = "org.slf4j" % "slf4j-jdk14" % "1.5.2"
+
+  val util = "com.twitter" % "util" % "1.0-SNAPSHOT"
 
   override def pomExtra =
     <licenses>
