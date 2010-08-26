@@ -158,6 +158,14 @@ class KestrelClient(val messageStore: MessageStore) {
         impl.put(key, value, expiry)
     }
   }
+  
+  /**
+   * Get the stats
+   */
+  def stats(): Map[String, String] = {
+    stopFlag = false
+    impl.stats
+  }
 
   /**
    * FIXME remove.

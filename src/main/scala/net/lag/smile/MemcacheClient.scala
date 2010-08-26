@@ -52,6 +52,16 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     pool.shutdown
     pool = null
   }
+  
+  /**
+  * Get the stats of the memcache cluster
+  */
+  @throws(classOf[MemcacheServerException])
+  def stats(): Map[String, String] = {
+	  // TODO: Do a proper node lookup
+	  val node = pool.servers(0)
+      node.stats
+  }
 
   override def toString() = {
     "<MemcacheClient locator=%s servers=%s>".format(locator, pool)

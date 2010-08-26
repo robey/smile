@@ -52,4 +52,9 @@ trait MessageStore {
    * Shutdown any underlying library.
    */
   def shutdown(): Unit
+  
+  /**
+   * Get stats
+   */
+  def stats(): Map[String, String]
 }
