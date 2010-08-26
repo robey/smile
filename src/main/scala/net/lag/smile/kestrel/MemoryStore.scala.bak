@@ -61,7 +61,7 @@ class MemoryStore extends MessageStore {
 
   def shutdown() = { }
   
-  def stats(): List[(String, Map[String, String])] = { List(("localhost", Map.empty)) }
+  def stats(): Map[String, String] = { Map.empty }
 
   /**
    * Contents of the queues, in an easily-verifiable string format.

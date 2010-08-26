@@ -56,5 +56,5 @@ trait MessageStore {
   /**
    * Get stats
    */
-  def stats(): List[(String, Map[String, String])]
+  def stats(): Map[String, String]
 }

@@ -58,12 +58,10 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   * Get the stats of the memcache cluster
   */
   @throws(classOf[MemcacheServerException])
-  def stats(): List[(String, Map[String, String])] = {
-	  var stats = new ListBuffer[(String, Map[String, String])]
-      for(node: MemcacheConnection <- pool.servers) {
-    	  stats += (node.hostname, node.stats)
-      }
-      stats.toList
+  def stats(): Map[String, String] = {
+	  // TODO: Do a proper node lookup
+	  val node = pool.servers(0)
+      node.stats
   }
 
   override def toString() = {
