@@ -30,6 +30,7 @@ import net.lag.logging.Logger
 import net.lag.naggati.{IoHandlerActorAdapter, MinaMessage}
 import org.apache.mina.core.session.IoSession
 import org.apache.mina.transport.socket.nio.NioSocketConnector
+import net.lag.smile.MemcacheConnection.{ConnectionFailed, ConnectionEjected, ConnectionError}
 
 
 /**
@@ -79,6 +80,8 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       case ConnectionFailed =>
         registerFailure()
         throw new MemcacheServerOffline
+      case ConnectionEjected =>
+        throw new MemcacheServerOffline
       case Error(description) =>
         registerFailure()
         throw new MemcacheServerException(description)
@@ -96,6 +99,8 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         throw new MemcacheServerTimeout
       case ConnectionFailed =>
         registerFailure()
+        throw new MemcacheServerOffline
+      case ConnectionEjected =>
         throw new MemcacheServerOffline
       case Error(description) =>
         registerFailure()
@@ -121,6 +126,8 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       case ConnectionFailed =>
         registerFailure()
         throw new MemcacheServerOffline
+      case ConnectionEjected =>
+        throw new MemcacheServerOffline
       case Error(description) =>
         registerFailure()
         throw new MemcacheServerException(description)
@@ -142,6 +149,8 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       case ConnectionFailed =>
         registerFailure()
         throw new MemcacheServerOffline
+      case ConnectionEjected =>
+        throw new MemcacheServerOffline
       case Error(description) =>
         registerFailure()
         throw new MemcacheServerException(description)
@@ -162,6 +171,8 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         throw new MemcacheServerTimeout
       case ConnectionFailed =>
         registerFailure()
+        throw new MemcacheServerOffline
+      case ConnectionEjected =>
         throw new MemcacheServerOffline
       case Error(description) =>
         registerFailure()
@@ -239,10 +250,6 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   //  ----------  implementation
 
   private def connect(): Unit = {
-    if (isEjected) {
-      // not yet.
-      return
-    }
     delaying = None
 
     val future = pool.connector.connect(new InetSocketAddress(hostname, port))
@@ -263,12 +270,20 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
     }
   }
 
-  private[smile] def ensureConnected(): Boolean = {
+  private[smile] def connectionError(): Option[ConnectionError] = {
     session match {
       case None =>
-        connect
-        session.isDefined
-      case Some(s) => true
+        if (isEjected) {
+          return Some(ConnectionEjected)
+        } else {
+          connect
+          if (session.isDefined) {
+            return None
+          } else {
+            return Some(ConnectionFailed)
+          }
+        }
+      case Some(s) => None
     }
   }
 
@@ -288,7 +303,6 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
   private case class Delete(query: String, key: String)
   private case class IncrDecr(query: String, key: String, value: Long)
 
-  private case object ConnectionFailed
   private case class Error(description: String)
   private case object Timeout
   private case class GetResponse(values: List[MemcacheResponse.Value])
@@ -307,47 +321,50 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
           self.exit
 
         case Get(query, key) =>
-          if (!ensureConnected()) {
-            reply(ConnectionFailed)
-          } else {
-            for (s <- session) {
-              s.write(query + " " + key + "\r\n")
-              waitForGetResponse(sender)
+          connectionError match {
+            case Some(failure) => reply(failure)
+            case None => {
+              for (s <- session) {
+                s.write(query + " " + key + "\r\n")
+                waitForGetResponse(sender)
+              }
             }
           }
 
         case Store(query, key, flags, expiry, data) =>
-          if (!ensureConnected()) {
-            reply(ConnectionFailed)
-          } else {
-            for (s <- session) {
-              s.write(query + " " + key + " " + flags + " " + expiry + " " + data.length + "\r\n")
-              s.write(data)
-              s.write("\r\n")
-              waitForGenericResponse(sender)
+          connectionError match {
+            case Some(failure) => reply(failure)
+            case None => {
+              for (s <- session) {
+                s.write(query + " " + key + " " + flags + " " + expiry + " " + data.length + "\r\n")
+                s.write(data)
+                s.write("\r\n")
+                waitForGenericResponse(sender)
+              }
             }
           }
 
         case Delete(query, key) =>
-          if (!ensureConnected()) {
-            reply(ConnectionFailed)
-          } else {
-            for (s <- session) {
-              s.write(query + " " + key + "\r\n")
-              waitForGenericResponse(sender)
+          connectionError match {
+            case Some(failure) => reply(failure)
+            case None => {
+              for (s <- session) {
+                s.write(query + " " + key + "\r\n")
+                waitForGenericResponse(sender)
+              }
             }
           }
 
         case IncrDecr(query, key, value) =>
-          if (!ensureConnected()) {
-            reply(ConnectionFailed)
-          } else {
-            for (s <- session) {
-              s.write(query + " " + key + " " + value.toString + "\r\n")
-              waitForGenericResponse(sender)
+          connectionError match {
+            case Some(failure) => reply(failure)
+            case None => {
+              for (s <- session) {
+                s.write(query + " " + key + " " + value.toString + "\r\n")
+                waitForGenericResponse(sender)
+              }
             }
           }
-
         // non-interesting (unsolicited) mina messages:
         case MinaMessage.MessageReceived(message) =>
           log.error("unsolicited response from server %s: %s", this, message)
@@ -419,4 +436,10 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       }
     }
   }
+}
+
+object MemcacheConnection {
+  trait ConnectionError
+  case object ConnectionFailed extends ConnectionError
+  case object ConnectionEjected extends ConnectionError
 }
