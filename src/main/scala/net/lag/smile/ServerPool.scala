@@ -25,7 +25,7 @@ import org.apache.mina.core.session.{IdleStatus, IoSession}
 import org.apache.mina.filter.codec.{ProtocolCodecFilter, ProtocolEncoder, ProtocolEncoderOutput}
 import org.apache.mina.transport.socket.nio.{NioProcessor, NioSocketConnector}
 import java.util.concurrent.Executors
-import scala.Option
+
 
 /**
  * Pool of memcache server connections, and their shared config.

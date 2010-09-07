@@ -243,27 +243,5 @@ class MemcacheClientSpec extends Specification with JMocker {
 
       client.get("b") mustEqual Some("b")
     }
-
-    "not set the pool if should_rebalance_servers is set to false" in {
-      makeServers(List(
-        Receive(7) :: SkipAwaitConnection :: Disconnect :: Receive(7) :: Send("VALUE a 0 1\r\nb\r\nEND\r\n".getBytes) :: Nil
-      ))
-      pool.maxFailuresBeforeEjection = 1
-      client.shouldRebalancePool = false
-      expect {
-        one(locator).findNode("b".getBytes) willReturn connections(0)
-      }
-
-      client.get("b") must throwA[MemcacheServerException]
-      connections(0).isEjected must beTrue
-
-      Time.advance(60.seconds)
-
-      expect {
-        never(locator).setPool(any)
-        one(locator).findNode("b".getBytes) willReturn connections(0)
-      }
-      client.get("b") mustEqual Some("b")
-    }    
   }
 }
