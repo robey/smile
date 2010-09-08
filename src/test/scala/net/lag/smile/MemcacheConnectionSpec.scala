@@ -25,7 +25,7 @@ import _root_.org.apache.mina.core.buffer.IoBuffer
 import _root_.org.apache.mina.core.session.{AbstractIoSession, DummySession, IoSession}
 import _root_.org.apache.mina.filter.codec._
 import _root_.org.specs._
-
+import net.lag.smile.MemcacheConnection.{ConnectionFailed, ConnectionEjected}
 
 object MemcacheConnectionSpec extends Specification {
 
@@ -68,7 +68,7 @@ object MemcacheConnectionSpec extends Specification {
 
       conn = new MemcacheConnection("localhost", server.port, 1)
       conn.pool = pool
-      conn.ensureConnected mustBe true
+      conn.connectionError mustBe None
       server.awaitConnection(500) mustBe true
     }
 
@@ -78,7 +78,18 @@ object MemcacheConnectionSpec extends Specification {
 
       conn = new MemcacheConnection("localhost", server.port + 1, 1)
       conn.pool = pool
-      conn.ensureConnected mustBe false
+      conn.connectionError must beSome(ConnectionFailed)
+      server.awaitConnection(500) mustBe false
+    }
+
+    "correctly indicate an ejected connection" in {
+      server = new FakeMemcacheConnection(Nil)
+      server.start
+
+      conn = new MemcacheConnection("localhost", server.port + 1, 1)
+      conn.pool = pool
+      conn.delaying = Some(Time.now + pool.retryDelay.milliseconds)
+      conn.connectionError must beSome(ConnectionEjected)
       server.awaitConnection(500) mustBe false
     }
 
@@ -88,7 +99,7 @@ object MemcacheConnectionSpec extends Specification {
 
       conn = new MemcacheConnection("localhost", server.port, 1)
       conn.pool = pool
-      conn.ensureConnected mustBe true
+      conn.connectionError mustBe None
       server.awaitConnection(500) mustBe true
       server.awaitDisconnected(500) mustBe true
       server.awaitConnection(50) mustBe false
@@ -100,7 +111,7 @@ object MemcacheConnectionSpec extends Specification {
         }
       ) mustEqual("no")
 
-      conn.ensureConnected mustBe true
+      conn.connectionError mustBe None
       server.awaitConnection(500) mustBe true
     }
 
@@ -111,14 +122,14 @@ object MemcacheConnectionSpec extends Specification {
 
       conn = new MemcacheConnection("localhost", server.port, 1)
       conn.pool = pool
-      conn.ensureConnected mustBe true
+      conn.connectionError mustBe None
       server.awaitConnection(500) mustBe true
       data(conn.get("fail")) mustEqual "no"
 
       server.awaitDisconnected(500) mustBe true
       server.awaitConnection(1) mustBe false
 
-      conn.ensureConnected mustBe false
+      conn.connectionError must beSome(ConnectionFailed)
       conn.delaying must beSome[Time]
       conn.session mustEqual None
       server.stop
@@ -127,9 +138,28 @@ object MemcacheConnectionSpec extends Specification {
       Time.advance(pool.retryDelay.milliseconds + 1.millisecond)
       server = new FakeMemcacheConnection(Receive(10) :: Send("VALUE fail 0 3\r\nyes\r\nEND\r\n".getBytes) :: Nil, server.port)
       server.start
-      conn.ensureConnected mustBe true
+      conn.connectionError mustBe None
       server.awaitConnection(500) mustBe true
       data(conn.get("fail")) mustEqual "yes"
+    }
+
+    "not update the retry delay when a connection is retried while the connection is still ejected" in {
+      pool.maxFailuresBeforeEjection = 1
+      server = new FakeMemcacheConnection(Receive(10) :: Disconnect :: Receive(10) :: Disconnect :: Nil)
+      server.start
+
+      conn = new MemcacheConnection("localhost", server.port, 1)
+      conn.pool = pool
+      conn.connectionError mustBe None
+      server.awaitConnection(500) mustBe true
+      conn.get("fail") must throwA[MemcacheServerException]
+      conn.isEjected must beTrue
+      val delayTime = conn.delaying
+      delayTime must beSome[Time]
+
+      Time.advance(pool.retryDelay.milliseconds - 1.millisecond)      
+      conn.get("fail") must throwA[MemcacheServerException]
+      conn.delaying must beEqual(delayTime)
     }
 
     "eject a server after N consecutive failures" in {
@@ -139,7 +169,7 @@ object MemcacheConnectionSpec extends Specification {
 
       conn = new MemcacheConnection("localhost", server.port, 1)
       conn.pool = pool
-      conn.ensureConnected mustBe true
+      conn.connectionError mustBe None
       server.awaitConnection(500) mustBe true
       conn.get("fail") must throwA[MemcacheServerException]
       conn.isEjected must beFalse
