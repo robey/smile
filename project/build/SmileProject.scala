@@ -22,7 +22,7 @@ class SmileProject(info: ProjectInfo) extends StandardProject(info) {
     case _ => "net.lag" % "configgy" % "2.0.0"
   }
 
-  val naggati = "net.lag" %% "naggati" % "0.7.4-SNAPSHOT"
+  val naggati = "net.lag" %% "naggati" % "0.7.4"
   val mina = "org.apache.mina" % "mina-core" % "2.0.0-M6"
   val slf4j_api = "org.slf4j" % "slf4j-api" % "1.5.2"
   val slf4j_jdk14 = "org.slf4j" % "slf4j-jdk14" % "1.5.2"
