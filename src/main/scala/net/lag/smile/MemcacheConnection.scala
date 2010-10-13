@@ -20,8 +20,8 @@ package net.lag.smile
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicInteger
-import scala.actors.{Actor, OutputChannel, TIMEOUT}
-import scala.actors.Actor._
+import com.twitter.actors.{Actor, OutputChannel, TIMEOUT}
+import com.twitter.actors.Actor._
 import scala.collection.mutable
 import com.twitter.xrayspecs.Time
 import com.twitter.xrayspecs.TimeConversions._

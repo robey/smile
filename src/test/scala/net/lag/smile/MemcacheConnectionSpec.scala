@@ -19,7 +19,7 @@ package net.lag.smile
 
 import _root_.net.lag.naggati.Steps._
 import _root_.java.nio.ByteOrder
-import _root_.com.twitter.xrayspecs.{Eventually, Time}
+import _root_.com.twitter.xrayspecs.Time
 import _root_.com.twitter.xrayspecs.TimeConversions._
 import _root_.org.apache.mina.core.buffer.IoBuffer
 import _root_.org.apache.mina.core.session.{AbstractIoSession, DummySession, IoSession}

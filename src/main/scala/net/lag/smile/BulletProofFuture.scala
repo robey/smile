@@ -16,7 +16,7 @@
 
 package net.lag.smile
 
-import scala.actors.{Actor, Future}
+import com.twitter.actors.{Actor, Future}
 
 object BulletProofFuture {
   def future[T](body: => T): Future[T] = {
