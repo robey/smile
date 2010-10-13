@@ -56,6 +56,7 @@ class KetamaNodeLocator(hasher: KeyHasher) extends NodeLocator {
     // we use (NUM_REPS * #servers) total points, but allocate them based on server weights.
     val serverCount = pool.liveServers.size
     val totalWeight = pool.liveServers.foldLeft(0.0) { _ + _.weight }
+    continuum = TreeMap[Long, MemcacheConnection]()
 
     for (node <- pool.liveServers) {
       val percent = node.weight.toDouble / totalWeight
