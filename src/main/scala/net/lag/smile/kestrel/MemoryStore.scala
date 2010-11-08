@@ -21,7 +21,7 @@ import scala.collection.mutable
 
 
 /**
- * MessageStare implementation that just reads from and writes to in-memory queues.
+ * MessageStore implementation that just reads from and writes to in-memory queues.
  */
 class MemoryStore extends MessageStore {
   var queues = new mutable.HashMap[String, mutable.Queue[Array[Byte]]]
@@ -60,6 +60,8 @@ class MemoryStore extends MessageStore {
   def put(key: String, value: String, expiry: Int) = putData(key, value.getBytes("UTF-8"))
 
   def shutdown() = { }
+  
+  def stats(): List[(String, Map[String, String])] = { List(("localhost", Map.empty)) }
 
   /**
    * Contents of the queues, in an easily-verifiable string format.

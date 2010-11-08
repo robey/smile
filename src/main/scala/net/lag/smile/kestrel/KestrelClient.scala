@@ -19,6 +19,8 @@ package net.lag.smile.kestrel
 
 import net.lag.configgy.ConfigMap
 import net.lag.logging.Logger
+import scala.collection.mutable
+import scala.collection.immutable
 
 
 /**
@@ -157,6 +159,14 @@ class KestrelClient(val messageStore: MessageStore) {
         // if it fails this time, intentionally throw the exception.
         impl.put(key, value, expiry)
     }
+  }
+
+  /**
+   * Get the stats.
+   */
+  def stats(): List[(String, Map[String, String])] = {
+    stopFlag = false
+    impl.stats
   }
 
   /**

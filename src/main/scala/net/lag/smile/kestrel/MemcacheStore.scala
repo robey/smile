@@ -38,4 +38,5 @@ class MemcacheStore(config: ConfigMap) extends MessageStore {
   def put(key: String, value: String, expiry: Int) = client.set(key, value, 0, expiry)
   def putData(key: String, value: Array[Byte]): Unit = client.setData(key, value)
   def shutdown() = client.shutdown
+  def stats(): List[(String, Map[String, String])] = client.stats
 }

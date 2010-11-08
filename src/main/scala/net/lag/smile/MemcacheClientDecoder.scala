@@ -105,6 +105,21 @@ object MemcacheClientDecoder {
         state.out.write(MemcacheResponse.EndOfResults)
         End
 
+      case "STAT" =>
+        val subParts = parts(1).split(" ")
+        if (subParts.length < 2) {
+          throw new ProtocolError("Corrupted STAT line")
+        }
+        try {
+          val name  = subParts(0)
+          val value = subParts(1)
+          state.out.write(MemcacheResponse.StatItem(name, value))
+          End
+        } catch {
+          case e: Exception =>
+          throw new ProtocolError("Corrupted STAT line")
+        }
+
       case "VALUE" =>
         val subParts = parts(1).split(" ")
         if ((subParts.length < 3) || (subParts.length > 4)) {
