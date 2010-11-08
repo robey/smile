@@ -249,7 +249,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
 
   //  ----------  implementation
 
-  private def connect(): Unit = {
+  private def connect(): Unit = synchronized {
     delaying = None
 
     val future = pool.connector.connect(new InetSocketAddress(hostname, port))
