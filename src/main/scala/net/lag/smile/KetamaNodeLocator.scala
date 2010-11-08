@@ -18,7 +18,7 @@
 package net.lag.smile
 
 import net.lag.extensions._
-import scala.collection.jcl
+import scala.collection.immutable.TreeMap
 import java.nio.{ByteBuffer, ByteOrder}
 import java.security.MessageDigest
 
@@ -27,7 +27,7 @@ class KetamaNodeLocator(hasher: KeyHasher) extends NodeLocator {
   private val NUM_REPS = 160
 
   private var pool: ServerPool = null
-  private val continuum = new jcl.TreeMap[Long, MemcacheConnection]
+  private var continuum = TreeMap[Long, MemcacheConnection]()
 
 
   def this() = this(KeyHasher.KETAMA)
@@ -39,7 +39,7 @@ class KetamaNodeLocator(hasher: KeyHasher) extends NodeLocator {
 
   def findNode(key: Array[Byte]): MemcacheConnection = synchronized {
     val hash = hasher.hashKey(key)
-    val tail = continuum.underlying.tailMap(hash)
+    val tail = continuum.from(hash)
     continuum(if (tail.isEmpty) continuum.firstKey else tail.firstKey)
   }
 
@@ -56,7 +56,7 @@ class KetamaNodeLocator(hasher: KeyHasher) extends NodeLocator {
     // we use (NUM_REPS * #servers) total points, but allocate them based on server weights.
     val serverCount = pool.liveServers.size
     val totalWeight = pool.liveServers.foldLeft(0.0) { _ + _.weight }
-    continuum.clear
+    continuum = TreeMap[Long, MemcacheConnection]()
 
     for (node <- pool.liveServers) {
       val percent = node.weight.toDouble / totalWeight
@@ -69,7 +69,10 @@ class KetamaNodeLocator(hasher: KeyHasher) extends NodeLocator {
           node.hostname + ":" + node.port + "-" + k
         }
         for (i <- 0 until 4) {
-          continuum += (computeHash(key, i) -> node)
+          // this incrementally builds up for maps.  Hard to do it
+          // otherwise and get 2.7.7 and 2.8.0 cross-compiling.  This
+          // is only called when setting a server pool, so it should be fine
+          continuum = continuum + (computeHash(key, i) -> node)
         }
       }
     }

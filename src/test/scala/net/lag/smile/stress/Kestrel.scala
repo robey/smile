@@ -22,8 +22,8 @@ import _root_.java.util.concurrent.{CountDownLatch, TimeUnit}
 import _root_.net.lag.configgy.{Configgy, Config}
 import _root_.net.lag.extensions._
 import _root_.net.lag.logging.{Level, Logger}
-import _root_.net.lag.smile.MemcacheClient
-import _root_.scala.actors._
+import _root_.net.lag.smile._
+import _root_.com.twitter.actors._
 import _root_.scala.collection.mutable.ListBuffer
 
 case class ReadRow(timestampMs:Long, value: String)

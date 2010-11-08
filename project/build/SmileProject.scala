@@ -1,18 +1,27 @@
 import sbt._
-import com.twitter.sbt.StandardProject
+import com.twitter.sbt._
 
-
-class SmileProject(info: ProjectInfo) extends StandardProject(info) {
-  val specs = "org.scala-tools.testing" % "specs" % "1.6.2.1"
-  val xrayspecs = "com.twitter" % "xrayspecs" % "1.0.7"
+class SmileProject(info: ProjectInfo) extends StandardProject(info) with SubversionPublisher {
+  val specs     = buildScalaVersion match {
+    case "2.7.7" => "org.scala-tools.testing" % "specs" % "1.6.2.1"
+    case _ => "org.scala-tools.testing" %% "specs" % "1.6.5"
+  }
+  val xrayspecs = buildScalaVersion match {
+    case "2.7.7" => "com.twitter" % "xrayspecs" % "1.0.7"
+    case _ => "com.twitter" %% "xrayspecs" % "2.0"
+  }
   val vscaladoc = "org.scala-tools" % "vscaladoc" % "1.1-md-3"
 
   val hamcrest  = "org.hamcrest" % "hamcrest-all" % "1.1"
   val jmock     = "org.jmock" % "jmock" % "2.4.0"
   val objenesis = "org.objenesis" % "objenesis" % "1.1"
 
-  val configgy = "net.lag" % "configgy" % "1.5.3"
-  val naggati = "net.lag" % "naggati" % "0.7.2"
+  val configgy  = buildScalaVersion match {
+    case "2.7.7" => "net.lag" % "configgy" % "1.5.3"
+    case _ => "net.lag" % "configgy" % "2.0.0"
+  }
+
+  val naggati = "net.lag" %% "naggati" % "0.7.4"
   val mina = "org.apache.mina" % "mina-core" % "2.0.0-M6"
   val slf4j_api = "org.slf4j" % "slf4j-api" % "1.5.2"
   val slf4j_jdk14 = "org.slf4j" % "slf4j-jdk14" % "1.5.2"
@@ -27,4 +36,7 @@ class SmileProject(info: ProjectInfo) extends StandardProject(info) {
     </licenses>
 
   override def releaseBuild = true
+  override def disableCrossPaths = false
+
+  override def subversionRepository = Some("http://svn.local.twitter.com/maven-public/")
 }
