@@ -226,7 +226,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
 
   @throws(classOf[MemcacheServerException])
   def stats(): Map[String, String] = {
-	  serverActor !? Stats("stats") match {
+    serverActor !? Stats("stats") match {
       case Timeout =>
         registerFailure()
         throw new MemcacheServerTimeout
@@ -242,7 +242,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       case MemcacheResponse.NotFound =>
         clearFailures()
         Map.empty
-	  }
+    }
   }
 
   def isEjected = synchronized {
@@ -332,7 +332,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
 
   // values collected from a get/gets
   private val values = new mutable.ListBuffer[MemcacheResponse.Value]
-  
+
   // values collected from stats
   private val statsValues = new mutable.ListBuffer[MemcacheResponse.StatItem]
 
@@ -345,15 +345,15 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
         case Stop =>
           disconnect
           self.exit
-          
+
         case Stats(query) =>
-          if (!ensureConnected()) {
-            reply(ConnectionFailed)
-          } else {
-        	for (s <- session) {
-        		s.write(query + "\r\n")
-        		waitForStatResponse(sender)
-        	}
+          connectionError match {
+            case Some(failure) => reply(failure)
+            case None =>
+              for (s <- session) {
+                s.write(query + "\r\n")
+                waitForStatResponse(sender)
+              }
           }
 
         case Get(query, key) =>
@@ -461,7 +461,7 @@ class MemcacheConnection(val hostname: String, val port: Int, val weight: Int) {
       }
     }
   }
-  
+
   private def waitForGetResponse(sender: OutputChannel[Any]): Unit = {
     waitForResponse(sender) { message =>
       message match {

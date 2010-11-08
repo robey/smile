@@ -17,12 +17,11 @@
 
 package net.lag.smile
 
+import scala.collection.mutable
+import com.twitter.actors.{Future, Futures}
 import net.lag.configgy.ConfigMap
 import net.lag.logging.Logger
 import net.lag.extensions._
-import scala.actors.Futures
-import scala.collection.mutable
-import scala.collection.mutable.{ListBuffer}
 
 /**
  * A memcache client that talks to a pool of servers, and gets and sets values using a codec
@@ -52,17 +51,17 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
     pool.shutdown
     pool = null
   }
-  
+
   /**
-  * Get the stats of the memcache cluster
-  */
+   * Get the stats of the memcache cluster.
+   */
   @throws(classOf[MemcacheServerException])
   def stats(): List[(String, Map[String, String])] = {
-	  var stats = new ListBuffer[(String, Map[String, String])]
-      for(node: MemcacheConnection <- pool.servers) {
-    	  stats += (node.hostname, node.stats)
-      }
-      stats.toList
+    var stats = new mutable.ListBuffer[(String, Map[String, String])]
+    for (node <- pool.servers) {
+      stats += ((node.hostname, node.stats))
+    }
+    stats.toList
   }
 
   override def toString() = {
@@ -121,18 +120,18 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
    */
   @throws(classOf[MemcacheServerException])
   def getData(keys: Array[String]): Map[String, Array[Byte]] = {
-    val keyMap = new HashMap[String, String]
-    val nodeKeys = new HashMap[MemcacheConnection, ListBuffer[String]]
+    val keyMap = new mutable.HashMap[String, String]
+    val nodeKeys = new mutable.HashMap[MemcacheConnection, mutable.ListBuffer[String]]
     for (key <- keys) {
       val (node, realKey) = nodeForKey(key)
       keyMap(realKey) = key
-      nodeKeys.getOrElseUpdate(node, new ListBuffer[String]) += realKey
+      nodeKeys.getOrElseUpdate(node, new mutable.ListBuffer[String]) += realKey
     }
 
-    val futures: Iterable[Future[scala.collection.Map[String, MemcacheResponse.Value]]] = for ((node, keyList) <- nodeKeys) yield BulletProofFuture.future {
+    val futures: Iterable[Future[Map[String, MemcacheResponse.Value]]] = for ((node, keyList) <- nodeKeys) yield BulletProofFuture.future {
       withNode(node) {
         // had to give the compiler more info here in 2.8.0
-        val rv:scala.collection.Map[String, MemcacheResponse.Value] = try {
+        val rv: Map[String, MemcacheResponse.Value] = try {
           node.get(keyList.toArray)
         } catch {
           case e: Exception => {

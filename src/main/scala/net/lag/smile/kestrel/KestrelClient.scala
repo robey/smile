@@ -160,9 +160,9 @@ class KestrelClient(val messageStore: MessageStore) {
         impl.put(key, value, expiry)
     }
   }
-  
+
   /**
-   * Get the stats
+   * Get the stats.
    */
   def stats(): List[(String, Map[String, String])] = {
     stopFlag = false

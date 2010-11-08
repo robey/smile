@@ -42,7 +42,7 @@ trait MessageStore {
    * Puts an item on the queue.
    */
   def put(key: String, value: String): Unit
-  
+
   /**
    * Puts an item on the queue with the given expiry
    */
@@ -52,9 +52,9 @@ trait MessageStore {
    * Shutdown any underlying library.
    */
   def shutdown(): Unit
-  
+
   /**
-   * Get stats
+   * Get stats,
    */
   def stats(): List[(String, Map[String, String])]
 }
