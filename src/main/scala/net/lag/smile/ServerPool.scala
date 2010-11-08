@@ -38,6 +38,7 @@ class ServerPool(trace: Boolean) {
 
   var threadPool = Executors.newCachedThreadPool
   var servers: Array[MemcacheConnection] = Array()
+  var shouldRebalance = true
 
   // connections that were recently ejected but might come back:
   private val watchList = new mutable.ListBuffer[MemcacheConnection]
@@ -62,7 +63,11 @@ class ServerPool(trace: Boolean) {
   connector.setHandler(new IoHandlerActorAdapter(session => null))
 
   def liveServers = {
-    servers.filter { !_.isEjected }
+    if (shouldRebalance) {
+      servers.filter { !_.isEjected }
+    } else {
+      servers
+    }
   }
 
   // returns true if one or more ejected connections is ready to be tried again.
@@ -141,6 +146,9 @@ object ServerPool {
     }
     for (n <- attr.getInt("max_failures_before_ejection")) {
       pool.maxFailuresBeforeEjection = n
+    }
+    for (n <- attr.getBool("should_rebalance")) {
+      pool.shouldRebalance = n
     }
     pool
   }

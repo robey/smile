@@ -477,15 +477,17 @@ class MemcacheClient[T](locator: NodeLocator, codec: MemcacheCodec[T]) {
   }
 
   private def checkForUneject() {
-    if (pool.shouldRecheckEjectedConnections) {
+    if (pool.shouldRebalance && pool.shouldRecheckEjectedConnections) {
       log.info("Retrying ejections...")
       locator.setPool(pool)
     }
   }
 
   private def checkForEject() {
-    pool.scanForEjections()
-    locator.setPool(pool)
+    if (pool.shouldRebalance) {
+      pool.scanForEjections()
+      locator.setPool(pool)
+    }
   }
 }
 
