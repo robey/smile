@@ -38,9 +38,14 @@ class KetamaNodeLocator(hasher: KeyHasher) extends NodeLocator {
   }
 
   def findNode(key: Array[Byte]): MemcacheConnection = synchronized {
-    val hash = hasher.hashKey(key)
-    val tail = continuum.from(hash)
-    continuum(if (tail.isEmpty) continuum.firstKey else tail.firstKey)
+    if (continuum.isEmpty) {
+      // DOOM!
+      throw new NoSuchElementException()
+    } else {
+      val hash = hasher.hashKey(key)
+      val tail = continuum.from(hash)
+      continuum(if (tail.isEmpty) continuum.firstKey else tail.firstKey)
+    }
   }
 
   private def computeHash(key: String, alignment: Int) = {
