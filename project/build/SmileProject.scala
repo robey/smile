@@ -4,11 +4,11 @@ import com.twitter.sbt._
 class SmileProject(info: ProjectInfo) extends StandardProject(info) with SubversionPublisher {
   val specs     = buildScalaVersion match {
     case "2.7.7" => "org.scala-tools.testing" % "specs" % "1.6.2.1"
-    case _ => "org.scala-tools.testing" %% "specs" % "1.6.5"
+    case _ => "org.scala-tools.testing" % "specs_2.8.0" % "1.6.5"
   }
   val xrayspecs = buildScalaVersion match {
     case "2.7.7" => "com.twitter" % "xrayspecs" % "1.0.7"
-    case _ => "com.twitter" %% "xrayspecs" % "2.0"
+    case _ => "com.twitter" % "xrayspecs_2.8.0" % "2.0"
   }
   val vscaladoc = "org.scala-tools" % "vscaladoc" % "1.1-md-3"
 
@@ -21,7 +21,10 @@ class SmileProject(info: ProjectInfo) extends StandardProject(info) with Subvers
     case _ => "net.lag" % "configgy" % "2.0.0"
   }
 
-  val naggati = "net.lag" %% "naggati" % "0.7.4"
+  val naggati = buildScalaVersion match {
+    case "2.7.7" => "net.lag" % "naggati_2.7.7" % "0.7.4"
+    case _ => "net.lag" % "naggati_2.8.0" % "0.7.4"
+  }
   val mina = "org.apache.mina" % "mina-core" % "2.0.0-M6"
   val slf4j_api = "org.slf4j" % "slf4j-api" % "1.5.2"
   val slf4j_jdk14 = "org.slf4j" % "slf4j-jdk14" % "1.5.2"

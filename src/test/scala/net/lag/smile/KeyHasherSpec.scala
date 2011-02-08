@@ -22,7 +22,7 @@ import org.specs._
 
 object KeyHasherSpec extends Specification {
   // LIST_TO_HASH and known good values from libmemcached test/hash_results.h
-  val LIST_TO_HASH = Seq(
+  val LIST_TO_HASH = List(
     "apple",
     "beat",
     "carrot",
@@ -103,7 +103,7 @@ object KeyHasherSpec extends Specification {
 
   def testLibmemcacheValues(keyHasher: KeyHasher, values: Seq[Long]) {
     "libmemcache values" in {
-      LIST_TO_HASH.zip(values).foreach { case (input, expected) =>
+      LIST_TO_HASH.zip(values.toList).foreach { case (input, expected) =>
         keyHasher.hashKey(input.getBytes) mustEqual expected
       }
     }
